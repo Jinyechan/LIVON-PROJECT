@@ -1,0 +1,657 @@
+{# templates/public/index.html #}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>부동산 포털</title>
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#E8E4D9',secondary:'#B7B4A8'},borderRadius:{'none':'0px','sm':'4px',DEFAULT:'8px','md':'12px','lg':'16px','xl':'20px','2xl':'24px','3xl':'32px','full':'9999px','button':'8px'}}}}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+</head>
+<body class="bg-white">
+<!-- 헤더 -->
+<header class="fixed top-0 left-0 right-0 bg-white shadow-sm z-50">
+<div class="container mx-auto px-6 py-4 flex items-center justify-between">
+<a href="#" class="text-2xl font-['Pacifico'] text-gray-800">부동산 포털</a>
+<nav class="flex items-center justify-center space-x-8">
+<button data-section="property-search" class="nav-item text-gray-600 hover:text-gray-900 transition-all duration-300 px-4 py-2">매물검색</button>
+<button data-section="news" class="nav-item text-gray-600 hover:text-gray-900 transition-all duration-300 px-4 py-2">뉴스</button>
+<button data-section="weather" class="nav-item text-gray-600 hover:text-gray-900 transition-all duration-300 px-4 py-2">날씨</button>
+<button data-section="crime-map" class="nav-item text-gray-600 hover:text-gray-900 transition-all duration-300 px-4 py-2">범죄발생지역</button>
+</nav>
+<button class="bg-primary text-gray-800 px-6 py-2 rounded-button font-medium whitespace-nowrap hover:bg-primary/90 transition-colors">
+로그인
+</button>
+</div>
+</header>
+<!-- 메인 섹션 -->
+<div class="flex min-h-screen pt-[72px] relative">
+<div id="content-pane" class="w-[60%] h-[calc(100vh-72px)] sticky top-[72px] transition-all duration-300 ease-in-out overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+<div id="expand-button" class="fixed top-6 right-[40%] z-50">
+<button class="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95" title="전체화면 보기">
+<i class="ri-arrow-left-line text-lg text-gray-800" aria-label="전체화면 보기"></i>
+</button>
+</div>
+<div class="h-full overflow-y-auto px-6 py-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+<div class="w-full max-w-3xl">
+<!-- 검색 바 -->
+<div class="relative mb-4">
+<input type="text" id="location-search" placeholder="지역명을 입력하세요" class="w-full px-4 py-3 pr-12 text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+<button class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700" title="검색">
+<i class="ri-search-line text-lg" aria-label="검색"></i>
+</button>
+<!-- 자동완성 드롭다운 -->
+<div id="search-autocomplete" class="hidden absolute w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+</div>
+</div>
+<!-- 필터 바 -->
+<div class="flex flex-wrap gap-3 mb-6 pb-4 border-b border-gray-200">
+<button class="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-primary hover:text-primary flex items-center gap-1 whitespace-nowrap">
+<i class="ri-home-4-line"></i>
+매물 유형
+<i class="ri-arrow-down-s-line ml-1"></i>
+</button>
+<button class="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-primary hover:text-primary flex items-center gap-1 whitespace-nowrap">
+<i class="ri-money-dollar-circle-line"></i>
+가격대
+<i class="ri-arrow-down-s-line ml-1"></i>
+</button>
+<button class="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-primary hover:text-primary flex items-center gap-1 whitespace-nowrap">
+<i class="ri-layout-2-line"></i>
+면적
+<i class="ri-arrow-down-s-line ml-1"></i>
+</button>
+<button class="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-primary hover:text-primary flex items-center gap-1 whitespace-nowrap">
+<i class="ri-compass-3-line"></i>
+방향
+<i class="ri-arrow-down-s-line ml-1"></i>
+</button>
+</div>
+<!-- 매물 목록 -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden border border-gray-200">
+<div class="relative">
+<img src="https://readdy.ai/api/search-image?query=modern%20luxury%20apartment%20interior%20with%20large%20windows%2C%20natural%20light%2C%20minimalist%20design%2C%20high-end%20finishes%2C%20clean%20lines&width=400&height=300&seq=1&orientation=landscape" class="w-full h-48 object-cover" alt="매물 이미지">
+<button class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white/90 rounded-full hover:bg-white">
+<i class="ri-heart-line text-gray-600 hover:text-red-500"></i>
+</button>
+</div>
+<div class="p-4">
+<h3 class="font-medium text-gray-800 mb-1">모던 럭셔리 아파트</h3>
+<p class="text-sm text-gray-500 mb-2">강남구, 서울</p>
+<div class="flex justify-between items-center">
+<span class="text-lg font-semibold text-gray-800">8억 5,000만원</span>
+<span class="text-sm text-gray-500">95㎡</span>
+</div>
+</div>
+</div>
+<div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden border border-gray-200">
+<div class="relative">
+<img src="https://readdy.ai/api/search-image?query=contemporary%20apartment%20building%20exterior%2C%20modern%20architecture%2C%20glass%20facade%2C%20urban%20setting%2C%20professional%20real%20estate%20photography&width=400&height=300&seq=2&orientation=landscape" class="w-full h-48 object-cover" alt="매물 이미지">
+<button class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white/90 rounded-full hover:bg-white">
+<i class="ri-heart-line text-gray-600 hover:text-red-500"></i>
+</button>
+</div>
+<div class="p-4">
+<h3 class="font-medium text-gray-800 mb-1">리버뷰 레지던스</h3>
+<p class="text-sm text-gray-500 mb-2">용산구, 서울</p>
+<div class="flex justify-between items-center">
+<span class="text-lg font-semibold text-gray-800">7억 2,000만원</span>
+<span class="text-sm text-gray-500">85㎡</span>
+</div>
+</div>
+</div>
+<div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden border border-gray-200">
+<div class="relative">
+<img src="https://readdy.ai/api/search-image?query=luxury%20penthouse%20interior%2C%20floor%20to%20ceiling%20windows%2C%20city%20view%2C%20modern%20furniture%2C%20high-end%20design&width=400&height=300&seq=3&orientation=landscape" class="w-full h-48 object-cover" alt="매물 이미지">
+<button class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white/90 rounded-full hover:bg-white">
+<i class="ri-heart-line text-gray-600 hover:text-red-500"></i>
+</button>
+</div>
+<div class="p-4">
+<h3 class="font-medium text-gray-800 mb-1">스카이 가든 펜트하우스</h3>
+<p class="text-sm text-gray-500 mb-2">서초구, 서울</p>
+<div class="flex justify-between items-center">
+<span class="text-lg font-semibold text-gray-800">12억 5,000만원</span>
+<span class="text-sm text-gray-500">150㎡</span>
+</div>
+</div>
+</div>
+<div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden border border-gray-200">
+<div class="relative">
+<img src="https://readdy.ai/api/search-image?query=modern%20officetel%20exterior%2C%20glass%20and%20steel%20architecture%2C%20urban%20business%20district%2C%20professional%20real%20estate%20photography&width=400&height=300&seq=4&orientation=landscape" class="w-full h-48 object-cover" alt="매물 이미지">
+<button class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white/90 rounded-full hover:bg-white">
+<i class="ri-heart-line text-gray-600 hover:text-red-500"></i>
+</button>
+</div>
+<div class="p-4">
+<h3 class="font-medium text-gray-800 mb-1">비즈니스 베이 오피스텔</h3>
+<p class="text-sm text-gray-500 mb-2">역삼동, 서울</p>
+<div class="flex justify-between items-center">
+<span class="text-lg font-semibold text-gray-800">4억 8,000만원</span>
+<span class="text-sm text-gray-500">65㎡</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="map-pane" class="w-[40%] bg-gray-50 h-[calc(100vh-72px)] fixed right-0 top-[72px] transition-all duration-300 ease-in-out">
+<div class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://public.readdy.ai/gen_page/map_placeholder_1280x720.png')"></div>
+<div class="absolute inset-0 p-4">
+<div class="bg-white/90 rounded-lg shadow-md p-4 mb-4">
+<h3 class="text-lg font-semibold text-gray-800 mb-2">매물 지도</h3>
+<p class="text-gray-600">이용 가능한 매물을 보여주는 인터랙티브 지도</p>
+</div>
+</div>
+</div>
+</div>
+<!-- 가격 데이터 섹션 -->
+<section id="price-data" class="py-16 bg-gray-50">
+<div class="container mx-auto px-6">
+<div class="text-center mb-12">
+<h2 class="text-3xl font-bold text-gray-800 mb-4">가격 데이터</h2>
+<p class="text-gray-600 max-w-2xl mx-auto">정보에 기반한 투자 결정을 내리는 데 도움이 되는 종합적인 부동산 가격 분석</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200">
+<div class="w-12 h-12 flex items-center justify-center bg-primary/20 rounded-full mb-4">
+<i class="ri-line-chart-line text-xl text-primary"></i>
+</div>
+<h3 class="text-xl font-semibold text-gray-800 mb-3">가격 추세</h3>
+<p class="text-gray-600 mb-4">목표 지역의 역사적인 가격 변동을 추적하고 새로운 트렌드를 식별하세요</p>
+<div class="h-48 w-full" id="price-trend-chart"></div>
+<a href="#" class="inline-flex items-center text-primary hover:underline mt-4">
+<span>상세 분석 보기</span>
+<span class="w-5 h-5 flex items-center justify-center ml-1"><i class="ri-arrow-right-line"></i></span>
+</a>
+</div>
+<div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200">
+<div class="w-12 h-12 flex items-center justify-center bg-primary/20 rounded-full mb-4">
+<i class="ri-bar-chart-grouped-line text-xl text-primary"></i>
+</div>
+<h3 class="text-xl font-semibold text-gray-800 mb-3">지역 비교</h3>
+<p class="text-gray-600 mb-4">다양한 지역의 가격을 비교하여 투자에 가장 적합한 가치를 찾으세요</p>
+<div class="h-48 w-full" id="neighborhood-chart"></div>
+<a href="#" class="inline-flex items-center text-primary hover:underline mt-4">
+<span>지역 비교하기</span>
+<span class="w-5 h-5 flex items-center justify-center ml-1"><i class="ri-arrow-right-line"></i></span>
+</a>
+</div>
+<div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200">
+<div class="w-12 h-12 flex items-center justify-center bg-primary/20 rounded-full mb-4">
+<i class="ri-funds-box-line text-xl text-primary"></i>
+</div>
+<h3 class="text-xl font-semibold text-gray-800 mb-3">투자 잠재력</h3>
+<p class="text-gray-600 mb-4">투자 수익률 잠재력을 분석하고 최대 수익을 위한 고성장 지역을 식별하세요</p>
+<div class="h-48 w-full" id="investment-chart"></div>
+<a href="#" class="inline-flex items-center text-primary hover:underline mt-4">
+<span>투자 기회 탐색하기</span>
+<span class="w-5 h-5 flex items-center justify-center ml-1"><i class="ri-arrow-right-line"></i></span>
+</a>
+</div>
+</div>
+</div>
+</section>
+
+<!-- 범죄 지도 섹션 -->
+<section id="crime-map" class="py-16 bg-white">
+<div class="container mx-auto px-6">
+<div class="text-center mb-12">
+<h2 class="text-3xl font-bold text-gray-800 mb-4">범죄 지도</h2>
+<p class="text-gray-600 max-w-2xl mx-auto">우리의 인터랙티브 범죄 데이터 시각화를 통해 지역 안전을 평가하세요</p>
+</div>
+<div class="bg-white rounded-lg shadow-md p-6">
+<div class="flex flex-wrap items-center justify-between mb-6">
+<div class="flex items-center space-x-4">
+<button class="bg-primary text-gray-800 px-4 py-2 rounded-button font-medium whitespace-nowrap">개요</button>
+<button class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-button font-medium whitespace-nowrap hover:bg-gray-50 transition-colors">상세 보기</button>
+</div>
+<div class="flex items-center space-x-4 mt-4 md:mt-0">
+<div class="relative">
+<button class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-button font-medium whitespace-nowrap hover:bg-gray-50 transition-colors flex items-center">
+<span>최근 12개월</span>
+<span class="w-5 h-5 flex items-center justify-center ml-1"><i class="ri-arrow-down-s-line"></i></span>
+</button>
+</div>
+<div class="relative">
+<button class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-button font-medium whitespace-nowrap hover:bg-gray-50 transition-colors flex items-center">
+<span>모든 범죄 유형</span>
+<span class="w-5 h-5 flex items-center justify-center ml-1"><i class="ri-arrow-down-s-line"></i></span>
+</button>
+</div>
+</div>
+</div>
+<div class="h-[500px] w-full rounded-lg overflow-hidden relative" style="background-image: url('https://public.readdy.ai/gen_page/map_placeholder_1280x720.png'); background-size: cover; background-position: center;">
+<div class="absolute top-4 left-4 bg-white rounded shadow-md p-3">
+<h4 class="text-sm font-semibold text-gray-800 mb-2">범죄 지수</h4>
+<div class="flex items-center space-x-2 mb-1">
+<div class="w-3 h-3 rounded-full bg-green-500"></div>
+<span class="text-xs text-gray-700">낮음 (0-20)</span>
+</div>
+<div class="flex items-center space-x-2 mb-1">
+<div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+<span class="text-xs text-gray-700">중간 (21-50)</span>
+</div>
+<div class="flex items-center space-x-2 mb-1">
+<div class="w-3 h-3 rounded-full bg-orange-500"></div>
+<span class="text-xs text-gray-700">높음 (51-80)</span>
+</div>
+<div class="flex items-center space-x-2">
+<div class="w-3 h-3 rounded-full bg-red-500"></div>
+<span class="text-xs text-gray-700">매우 높음 (81-100)</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+<div class="bg-gray-50 p-4 rounded">
+<h4 class="text-sm font-semibold text-gray-700 mb-1">절도</h4>
+<div class="flex items-center">
+<div class="w-full bg-gray-200 rounded-full h-2 mr-2">
+<div class="bg-yellow-500 h-2 rounded-full" style="width: 45%"></div>
+</div>
+<span class="text-sm text-gray-700">45%</span>
+</div>
+</div>
+<div class="bg-gray-50 p-4 rounded">
+<h4 class="text-sm font-semibold text-gray-700 mb-1">폭행</h4>
+<div class="flex items-center">
+<div class="w-full bg-gray-200 rounded-full h-2 mr-2">
+<div class="bg-green-500 h-2 rounded-full" style="width: 18%"></div>
+</div>
+<span class="text-sm text-gray-700">18%</span>
+</div>
+</div>
+<div class="bg-gray-50 p-4 rounded">
+<h4 class="text-sm font-semibold text-gray-700 mb-1">주거침입</h4>
+<div class="flex items-center">
+<div class="w-full bg-gray-200 rounded-full h-2 mr-2">
+<div class="bg-green-500 h-2 rounded-full" style="width: 12%"></div>
+</div>
+<span class="text-sm text-gray-700">12%</span>
+</div>
+</div>
+<div class="bg-gray-50 p-4 rounded">
+<h4 class="text-sm font-semibold text-gray-700 mb-1">기물파손</h4>
+<div class="flex items-center">
+<div class="w-full bg-gray-200 rounded-full h-2 mr-2">
+<div class="bg-green-500 h-2 rounded-full" style="width: 25%"></div>
+</div>
+<span class="text-sm text-gray-700">25%</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- 뉴스 트렌드 섹션 -->
+<section id="news" class="py-16 bg-gray-50">
+<div class="container mx-auto px-6">
+<div class="text-center mb-12">
+<h2 class="text-3xl font-bold text-gray-800 mb-4">뉴스 트렌드</h2>
+<p class="text-gray-600 max-w-2xl mx-auto">최신 부동산 뉴스와 시장 동향으로 항상 최신 정보를 얻으세요</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="col-span-1 md:col-span-2">
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+<h3 class="text-xl font-semibold text-gray-800 mb-4">최신 뉴스</h3>
+<div class="space-y-6">
+<div class="flex flex-col md:flex-row border-b pb-6">
+<div class="w-full md:w-1/4 mb-4 md:mb-0">
+<div class="h-40 rounded overflow-hidden" style="background-image: url('https://readdy.ai/api/search-image?query=modern%20apartment%20building%20with%20glass%20facade%2C%20architectural%20photography%2C%20clean%20lines%2C%20professional%20real%20estate%20photography%2C%20bright%20daylight%2C%20urban%20setting&width=300&height=200&seq=2&orientation=landscape'); background-size: cover; background-position: center;"></div>
+</div>
+<div class="w-full md:w-3/4 md:pl-6">
+<h4 class="text-lg font-semibold text-gray-800 mb-2">새 주택 정책, 시장 활성화 기대</h4>
+<p class="text-gray-600 mb-3">첫 구매자를 위한 세금 인센티브와 완화된 대출 규정을 포함한 정부의 새로운 주택 정책이 향후 몇 달 동안 시장 활동을 자극할 것으로 예상됩니다.</p>
+<div class="flex items-center justify-between">
+<span class="text-sm text-gray-500">2025년 4월 18일</span>
+<a href="#" class="text-primary hover:underline">더 읽기</a>
+</div>
+</div>
+</div>
+<div class="flex flex-col md:flex-row border-b pb-6">
+<div class="w-full md:w-1/4 mb-4 md:mb-0">
+<div class="h-40 rounded overflow-hidden" style="background-image: url('https://readdy.ai/api/search-image?query=urban%20development%20construction%20site%2C%20new%20residential%20buildings%20under%20construction%2C%20cranes%2C%20professional%20real%20estate%20photography%2C%20bright%20daylight&width=300&height=200&seq=3&orientation=landscape'); background-size: cover; background-position: center;"></div>
+</div>
+<div class="w-full md:w-3/4 md:pl-6">
+<h4 class="text-lg font-semibold text-gray-800 mb-2">도심 지역 주요 개발 프로젝트 발표</h4>
+<p class="text-gray-600 mb-3">주거, 상업, 사무실 공간을 포함하는 복합 단지를 포함하여 도심 지역에 대한 여러 주요 개발 프로젝트가 발표되었습니다.</p>
+<div class="flex items-center justify-between">
+<span class="text-sm text-gray-500">2025년 4월 15일</span>
+<a href="#" class="text-primary hover:underline">더 읽기</a>
+</div>
+</div>
+</div>
+<div class="flex flex-col md:flex-row">
+<div class="w-full md:w-1/4 mb-4 md:mb-0">
+<div class="h-40 rounded overflow-hidden" style="background-image: url('https://readdy.ai/api/search-image?query=real%20estate%20agents%20meeting%20with%20clients%2C%20professional%20business%20setting%2C%20modern%20office%20interior%2C%20warm%20lighting%2C%20business%20discussion&width=300&height=200&seq=4&orientation=landscape'); background-size: cover; background-position: center;"></div>
+</div>
+<div class="w-full md:w-3/4 md:pl-6">
+<h4 class="text-lg font-semibold text-gray-800 mb-2">2025년 내내 금리 안정 예상</h4>
+<p class="text-gray-600 mb-3">경제 분석가들은 2025년 내내 금리가 안정적으로 유지될 것으로 예측하여 부동산 투자 및 모기지 자금 조달에 유리한 환경을 제공할 것입니다.</p>
+<div class="flex items-center justify-between">
+<span class="text-sm text-gray-500">2025년 4월 10일</span>
+<a href="#" class="text-primary hover:underline">더 읽기</a>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-6 text-center">
+<button class="text-primary hover:underline flex items-center justify-center mx-auto">
+<span>더 많은 뉴스 보기</span>
+<span class="w-5 h-5 flex items-center justify-center ml-1"><i class="ri-arrow-down-s-line"></i></span>
+</button>
+</div>
+</div>
+</div>
+<div>
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+<h3 class="text-xl font-semibold text-gray-800 mb-4">인기 키워드</h3>
+<div class="flex flex-wrap gap-2">
+<span class="bg-primary/20 text-gray-800 px-3 py-1 rounded-full text-sm">주택 정책</span>
+<span class="bg-primary/10 text-gray-800 px-3 py-1 rounded-full text-sm">금리</span>
+<span class="bg-primary/30 text-gray-800 px-3 py-1 rounded-full text-sm">도시 개발</span>
+<span class="bg-primary/15 text-gray-800 px-3 py-1 rounded-full text-sm">재산세</span>
+<span class="bg-primary/25 text-gray-800 px-3 py-1 rounded-full text-sm">스마트홈</span>
+<span class="bg-primary/20 text-gray-800 px-3 py-1 rounded-full text-sm">친환경 건축</span>
+<span class="bg-primary/10 text-gray-800 px-3 py-1 rounded-full text-sm">임대시장</span>
+<span class="bg-primary/15 text-gray-800 px-3 py-1 rounded-full text-sm">외국인 투자</span>
+<span class="bg-primary/25 text-gray-800 px-3 py-1 rounded-full text-sm">고급 매물</span>
+<span class="bg-primary/20 text-gray-800 px-3 py-1 rounded-full text-sm">첫 구매자</span>
+<span class="bg-primary/30 text-gray-800 px-3 py-1 rounded-full text-sm">시장 예측</span>
+<span class="bg-primary/15 text-gray-800 px-3 py-1 rounded-full text-sm">상업용 부동산</span>
+</div>
+</div>
+<div class="bg-white rounded-lg shadow-md p-6">
+<h3 class="text-xl font-semibold text-gray-800 mb-4">시장 동향</h3>
+<div class="h-48 w-full" id="sentiment-chart"></div>
+<div class="mt-4">
+<div class="flex items-center justify-between mb-2">
+<span class="text-sm text-gray-700">구매자 시장</span>
+<span class="text-sm text-gray-700">판매자 시장</span>
+</div>
+<div class="h-2 bg-gray-200 rounded-full">
+<div class="h-2 bg-primary rounded-full" style="width: 65%"></div>
+</div>
+<p class="text-sm text-gray-600 mt-2">현재 시장 상황은 인기 지역의 제한된 재고로 판매자에게 약간 유리합니다.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- 연락처 섹션 -->
+<section id="contact" class="py-16 bg-white">
+<div class="container mx-auto px-6">
+<div class="text-center mb-12">
+<h2 class="text-3xl font-bold text-gray-800 mb-4">문의하기</h2>
+<p class="text-gray-600 max-w-2xl mx-auto">질문이 있거나 도움이 필요하신가요? 부동산 전문가에게 문의하세요</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+<div>
+<form class="space-y-6">
+<div>
+<label class="block text-gray-700 mb-2">이름</label>
+<input type="text" placeholder="이름을 입력하세요" class="w-full bg-white border border-gray-300 rounded py-3 px-4 text-gray-700">
+</div>
+<div>
+<label class="block text-gray-700 mb-2">이메일</label>
+<input type="email" placeholder="이메일을 입력하세요" class="w-full bg-white border border-gray-300 rounded py-3 px-4 text-gray-700">
+</div>
+<div>
+<label class="block text-gray-700 mb-2">제목</label>
+<div class="relative">
+<button class="w-full flex items-center justify-between bg-white border border-gray-300 rounded text-gray-700 py-3 px-4">
+<span>제목을 선택하세요</span>
+<span class="w-5 h-5 flex items-center justify-center"><i class="ri-arrow-down-s-line"></i></span>
+</button>
+</div>
+</div>
+<div>
+<label class="block text-gray-700 mb-2">메시지</label>
+<textarea rows="4" placeholder="메시지를 입력하세요" class="w-full bg-white border border-gray-300 rounded py-3 px-4 text-gray-700"></textarea>
+</div>
+<div class="flex items-center">
+<div class="custom-checkbox" id="subscribe-checkbox"></div>
+<label for="subscribe-checkbox" class="ml-2 text-gray-700">뉴스레터 구독하기</label>
+</div>
+<button class="bg-primary text-gray-800 px-6 py-3 rounded-button font-medium whitespace-nowrap hover:bg-primary/90 transition-colors w-full">메시지 보내기
+<!-- 주택 평가 섹션 -->
+<section id="housing-appraisal" class="py-16 bg-gray-50">
+<div class="container mx-auto px-6">
+<div class="text-center mb-12">
+<h2 class="text-3xl font-bold text-gray-800 mb-4">주택 감정 평가</h2>
+<p class="text-gray-600 max-w-2xl mx-auto">종합적인 시장 데이터와 분석에 기반한 정확한 부동산 가치 평가를 받으세요</p>
+</div>
+<div class="bg-white rounded-lg shadow-md p-8 max-w-4xl mx-auto">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+<div>
+<h3 class="text-xl font-semibold text-gray-800 mb-4">부동산 정보</h3>
+<div class="space-y-4">
+<div>
+<label class="block text-gray-700 mb-2">부동산 유형</label>
+<div class="relative">
+<button class="w-full flex items-center justify-between bg-white border border-gray-300 rounded text-gray-700 py-2 px-3">
+<span>아파트</span>
+<span class="w-5 h-5 flex items-center justify-center"><i class="ri-arrow-down-s-line"></i></span>
+</button>
+</div>
+</div>
+<div>
+<label class="block text-gray-700 mb-2">위치</label>
+<input type="text" placeholder="주소 또는 지역 입력" class="w-full bg-white border border-gray-300 rounded py-2 px-3 text-gray-700">
+</div>
+<div>
+<label class="block text-gray-700 mb-2">크기 (㎡)</label>
+<input type="number" placeholder="크기 입력" class="w-full bg-white border border-gray-300 rounded py-2 px-3 text-gray-700">
+</div>
+<div>
+<label class="block text-gray-700 mb-2">건축년도</label>
+<input type="number" placeholder="연도 입력" class="w-full bg-white border border-gray-300 rounded py-2 px-3 text-gray-700">
+</div>
+</div>
+</div>
+<div>
+<h3 class="text-xl font-semibold text-gray-800 mb-4">추가 기능</h3>
+<div class="space-y-4">
+<div>
+<label class="block text-gray-700 mb-2">침실</label>
+<div class="flex space-x-4">
+<div class="flex items-center">
+<div class="custom-radio checked" id="bedroom-1"></div>
+<label for="bedroom-1" class="ml-2 text-gray-700">1</label>
+</div>
+<div class="flex items-center">
+<div class="custom-radio" id="bedroom-2"></div>
+<label for="bedroom-2" class="ml-2 text-gray-700">2</label>
+</div>
+<div class="flex items-center">
+<div class="custom-radio" id="bedroom-3"></div>
+<label for="bedroom-3" class="ml-2 text-gray-700">3</label>
+</div>
+<div class="flex items-center">
+<div class="custom-radio" id="bedroom-4"></div>
+<label for="bedroom-4" class="ml-2 text-gray-700">4+</label>
+</div>
+</div>
+</div>
+<div>
+<label class="block text-gray-700 mb-2">욕실</label>
+<div class="flex space-x-4">
+<div class="flex items-center">
+<div class="custom-radio checked" id="bathroom-1"></div>
+<label for="bathroom-1" class="ml-2 text-gray-700">1</label>
+</div>
+<div class="flex items-center">
+<div class="custom-radio" id="bathroom-2"></div>
+<label for="bathroom-2" class="ml-2 text-gray-700">2</label>
+</div>
+<div class="flex items-center">
+<div class="custom-radio" id="bathroom-3"></div>
+<label for="bathroom-3" class="ml-2 text-gray-700">3+</label>
+</div>
+</div>
+</div>
+<div>
+<label class="block text-gray-700 mb-2">편의 시설</label>
+<div class="grid grid-cols-2 gap-2">
+<div class="flex items-center">
+<div class="custom-checkbox" id="parking-checkbox"></div>
+<label for="parking-checkbox" class="ml-2 text-gray-700">주차장</label>
+</div>
+<div class="flex items-center">
+<div class="custom-checkbox" id="elevator-checkbox"></div>
+<label for="elevator-checkbox" class="ml-2 text-gray-700">엘리베이터</label>
+</div>
+<div class="flex items-center">
+<div class="custom-checkbox" id="balcony-checkbox"></div>
+<label for="balcony-checkbox" class="ml-2 text-gray-700">발코니</label>
+</div>
+<div class="flex items-center">
+<div class="custom-checkbox" id="security-checkbox"></div>
+<label for="security-checkbox" class="ml-2 text-gray-700">보안 시설</label>
+</div>
+</div>
+</div>
+<div>
+<label class="block text-gray-700 mb-2">상태</label>
+<div class="relative">
+<button class="w-full flex items-center justify-between bg-white border border-gray-300 rounded text-gray-700 py-2 px-3">
+<span>양호</span>
+<span class="w-5 h-5 flex items-center justify-center"><i class="ri-arrow-down-s-line"></i></span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="text-center">
+<button class="bg-primary text-gray-800 px-8 py-3 rounded-button font-medium whitespace-nowrap hover:bg-primary/90 transition-colors">감정 평가 받기</button>
+</div>
+<div class="mt-8 p-6 bg-gray-50 rounded-lg">
+<h3 class="text-xl font-semibold text-gray-800 mb-4">예상 가격 범위</h3>
+<div class="flex justify-between items-center mb-2">
+<span class="text-gray-600">4억 5,000만원</span>
+<span class="text-gray-600">5억 2,000만원</span>
+</div>
+<div class="h-2 bg-gray-200 rounded-full mb-6">
+<div class="h-2 bg-primary rounded-full" style="width: 65%"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<div class="bg-white p-4 rounded shadow-sm">
+<p class="text-gray-600 text-sm">평균 가격</p>
+<p class="text-xl font-semibold text-gray-800">4억 8,500만원</p>
+</div>
+<div class="bg-white p-4 rounded shadow-sm">
+<p class="text-gray-600 text-sm">㎡당 가격</p>
+<p class="text-xl font-semibold text-gray-800">538만원</p>
+</div>
+<div class="bg-white p-4 rounded shadow-sm">
+<p class="text-gray-600 text-sm">신뢰도</p>
+<p class="text-xl font-semibold text-gray-800">높음 (92%)</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 오피스텔 & 상업용 벤치마크 섹션 -->
+<section id="commercial" class="py-16 bg-white">
+<div class="container mx-auto px-6">
+<div class="text-center mb-12">
+<h2 class="text-3xl font-bold text-gray-800 mb-4">오피스텔 & 상업용 벤치마크</h2>
+<p class="text-gray-600 max-w-2xl mx-auto">상업용 부동산 지표를 비교하고 비즈니스에 가장 적합한 기회를 찾으세요</p>
+</div>
+<div class="flex flex-wrap mb-8">
+<div class="w-full md:w-auto flex mb-4 md:mb-0">
+<button class="bg-primary text-gray-800 px-4 py-2 rounded-l-button font-medium whitespace-nowrap">오피스텔</button>
+<button class="bg-gray-100 text-gray-700 px-4 py-2 rounded-r-button font-medium whitespace-nowrap hover:bg-gray-200 transition-colors">상업용</button>
+</div>
+<div class="w-full md:w-auto md:ml-auto flex items-center">
+<span class="text-gray-700 mr-2">필터:</span>
+<button class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-button font-medium whitespace-nowrap hover:bg-gray-50 transition-colors flex items-center">
+<span>위치</span>
+<span class="w-5 h-5 flex items-center justify-center ml-1"><i class="ri-arrow-down-s-line"></i></span>
+</button>
+<button class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-button font-medium whitespace-nowrap hover:bg-gray-50 transition-colors flex items-center ml-2">
+<span>크기</span>
+<span class="w-5 h-5 flex items-center justify-center ml-1"><i class="ri-arrow-down-s-line"></i></span>
+</button>
+<button class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-button font-medium whitespace-nowrap hover:bg-gray-50 transition-colors flex items-center ml-2">
+<span>가격</span>
+<span class="w-5 h-5 flex items-center justify-center ml-1"><i class="ri-arrow-down-s-line"></i></span>
+</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full min-w-[800px] bg-white rounded-lg shadow-md">
+<thead>
+<tr class="bg-gray-50 border-b">
+<th class="text-left py-4 px-6 text-gray-700 font-semibold">위치</th>
+<th class="text-left py-4 px-6 text-gray-700 font-semibold">평균 가격 (㎡)</th>
+<th class="text-left py-4 px-6 text-gray-700 font-semibold">점유율</th>
+<th class="text-left py-4 px-6 text-gray-700 font-semibold">투자수익률</th>
+<th class="text-left py-4 px-6 text-gray-700 font-semibold">전년대비</th>
+<th class="text-left py-4 px-6 text-gray-700 font-semibold"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="border-b hover:bg-gray-50">
+<td class="py-4 px-6 text-gray-800">강남구</td>
+<td class="py-4 px-6 text-gray-800">985만원</td>
+<td class="py-4 px-6 text-gray-800">94%</td>
+<td class="py-4 px-6 text-gray-800">5.2%</td>
+<td class="py-4 px-6 text-green-600">+3.8%</td>
+<td class="py-4 px-6">
+<button class="text-primary hover:underline">상세정보</button>
+</td>
+</tr>
+<tr class="border-b hover:bg-gray-50">
+<td class="py-4 px-6 text-gray-800">마포구</td>
+<td class="py-4 px-6 text-gray-800">732만원</td>
+<td class="py-4 px-6 text-gray-800">89%</td>
+<td class="py-4 px-6 text-gray-800">6.1%</td>
+<td class="py-4 px-6 text-green-600">+2.5%</td>
+<td class="py-4 px-6">
+<button class="text-primary hover:underline">상세정보</button>
+</td>
+</tr>
+<tr class="border-b hover:bg-gray-50">
+<td class="py-4 px-6 text-gray-800">영등포구</td>
+<td class="py-4 px-6 text-gray-800">694만원</td>
+<td class="py-4 px-6 text-gray-800">91%</td>
+<td class="py-4 px-6 text-gray-800">5.8%</td>
+<td class="py-4 px-6 text-green-600">+4.2%</td>
+<td class="py-4 px-6">
+<button class="text-primary hover:underline">상세정보</button>
+</td>
+</tr>
+<tr class="border-b hover:bg-gray-50">
+<td class="py-4 px-6 text-gray-800">송파구</td>
+<td class="py-4 px-6 text-gray-800">812만원</td>
+<td class="py-4 px-6 text-gray-800">92%</td>
+<td class="py-4 px-6 text-gray-800">4.9%</td>
+<td class="py-4 px-6 text-green-600">+1.8%</td>
+<td class="py-4 px-6">
+<button class="text-primary hover:underline">상세정보</button>
+</td>
+</tr>
+<tr class="hover:bg-gray-50">
+<td class="py-4 px-6 text-gray-800">서초구</td>
+<td class="py-4 px-6 text-gray-800">875만원</td>
+<td class="py-4 px-6 text-gray-800">95%</td>
+<td class="py-4 px-6 text-gray-800">5.5%</td>
+<td class="py-4 px-6 text-green-600">+3.2%</td>
+<td class="py-4 px-6">
+<button class="text-primary hover:underline">상세정보</button>
+</td>
