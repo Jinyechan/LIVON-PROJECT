@@ -3,7 +3,6 @@
 // 전역 변수 설정
 let map; // 카카오맵 인스턴스
 let currentMarkers = []; // 현재 지도에 표시된 마커들
-let radiusCircle; // 반경 원 객체
 let lastSearchCenter = null; // 마지막 검색 중심점
 let lastSearchLevel = 0; // 마지막 검색 시 지도 레벨
 let isMapMoving = false; // 지도 이동 중인지 여부
@@ -35,28 +34,34 @@ function initMapEventListeners() {
   // 지도 영역 클릭 시 이벤트 버블링 방지
   const mapContainer = document.getElementById('kakao-map');
   if (mapContainer) {
-    mapContainer.addEventListener('click', function(e) {
-      e.stopPropagation();
-    });
-    
-    // 지도 영역에서 스크롤 이벤트 처리
+    // 지도 영역에서 스크롤 이벤트 처리 개선
     mapContainer.addEventListener('wheel', function(e) {
       e.stopPropagation(); // 스크롤 이벤트 전파 중지
-    });
+      e.preventDefault(); // 기본 스크롤 동작 방지
+      
+      // 스크롤 방향에 따른 확대/축소
+      if (e.deltaY < 0) {
+        // 휠 위로 (확대)
+        map.setLevel(Math.max(1, map.getLevel() - 1));
+      } else {
+        // 휠 아래로 (축소)
+        map.setLevel(Math.min(14, map.getLevel() + 1));
+      }
+    }, { passive: false });
+    
+    // 터치 이벤트도 방지 (모바일)
+    mapContainer.addEventListener('touchmove', function(e) {
+      e.stopPropagation();
+    }, { passive: false });
   }
   
-  // 지도 영역 확대/축소 완료 이벤트 - 확대 레벨에 따라 반경 변경
+  // 지도 영역 확대/축소 완료 이벤트
   kakao.maps.event.addListener(map, 'zoom_changed', function() {
     // 현재 확대 레벨 가져오기 (1: 최대 확대, 14: 최대 축소)
     const level = map.getLevel();
     
-    // 확대 레벨에 따른 반경 계산 (km)
-    let radiusKm = calculateRadiusByLevel(level);
-    
-    // 반경 변경
-    if (lastSearchCenter) {
-      updateSearchRadiusWithoutLoading(lastSearchCenter.getLat(), lastSearchCenter.getLng(), radiusKm);
-    }
+    // 확대 레벨을 lastSearchLevel에 저장
+    lastSearchLevel = level;
   });
   
   // 지도 이동 시작 이벤트
@@ -228,6 +233,7 @@ function moveMapToLocation(lat, lng, zoom) {
   // 줌 레벨이 지정된 경우 변경
   if (zoom) {
     map.setLevel(zoom);
+    lastSearchLevel = zoom; // 줌 레벨 저장
   }
 }
 
@@ -261,37 +267,6 @@ function addMyLocationMarker(lat, lng) {
   });
 }
 
-// 반경 원 표시 함수
-function drawRadiusCircle(lat, lng, radiusKm) {
-  if (!map) return;
-  
-  // 기존 원 제거
-  if (radiusCircle) {
-    radiusCircle.setMap(null);
-  }
-  
-  // 원 생성
-  const center = new kakao.maps.LatLng(lat, lng);
-  radiusCircle = new kakao.maps.Circle({
-    center: center,
-    radius: radiusKm * 1000, // m 단위로 변환
-    strokeWeight: 2,
-    strokeColor: '#007bff',
-    strokeOpacity: 0.7,
-    strokeStyle: 'dashed',
-    fillColor: '#007bff',
-    fillOpacity: 0.1
-  });
-  
-  radiusCircle.setMap(map);
-}
-
-// 반경만 업데이트하는 함수 (매물 로드 없음)
-function updateSearchRadiusWithoutLoading(lat, lng, radiusKm) {
-  // 반경 원만 업데이트
-  drawRadiusCircle(lat, lng, radiusKm);
-}
-
 // 현재 위치 기반 매물 로드
 function loadPropertiesNearCurrentLocation() {
   console.log("현재 위치 기반 매물 로드 시작");
@@ -317,13 +292,8 @@ function loadPropertiesNearCurrentLocation() {
         // 현재 위치에 마커 추가
         addMyLocationMarker(lat, lng);
         
-        // 초기 반경 설정
+        // 주변 매물 로드 (반경은 확대 레벨에 따라 결정)
         const initialRadius = calculateRadiusByLevel(lastSearchLevel);
-        
-        // 반경 표시
-        drawRadiusCircle(lat, lng, initialRadius);
-        
-        // 주변 매물 로드
         loadPropertiesNearLocation(lat, lng, initialRadius);
       },
       // 위치 조회 실패 시
@@ -346,13 +316,8 @@ function loadPropertiesNearCurrentLocation() {
         // 지도 이동
         moveMapToLocation(defaultLat, defaultLng, lastSearchLevel);
         
-        // 반경 설정
+        // 주변 매물 로드 (반경은 확대 레벨에 따라 결정)
         const initialRadius = calculateRadiusByLevel(lastSearchLevel);
-        
-        // 반경 표시
-        drawRadiusCircle(defaultLat, defaultLng, initialRadius);
-        
-        // 주변 매물 로드
         loadPropertiesNearLocation(defaultLat, defaultLng, initialRadius);
       }
     );
@@ -372,13 +337,8 @@ function loadPropertiesNearCurrentLocation() {
     
     moveMapToLocation(defaultLat, defaultLng, lastSearchLevel);
     
-    // 반경 설정
+    // 주변 매물 로드 (반경은 확대 레벨에 따라 결정)
     const initialRadius = calculateRadiusByLevel(lastSearchLevel);
-    
-    // 반경 표시
-    drawRadiusCircle(defaultLat, defaultLng, initialRadius);
-    
-    // 주변 매물 로드
     loadPropertiesNearLocation(defaultLat, defaultLng, initialRadius);
   }
 }
@@ -466,6 +426,7 @@ function initExpandButton() {
   const contentPane = document.getElementById("content-pane");
   const mapPane = document.getElementById("map-pane");
   const expandButton = document.getElementById("expand-button");
+  const dividerLine = document.querySelector('.divider-line');
 
   if (contentPane && mapPane && expandButton) {
     let isExpanded = false;
@@ -483,6 +444,9 @@ function initExpandButton() {
         }
         expandButton.querySelector("button").setAttribute("title", "지도 보기");
         expandButton.querySelector("i").setAttribute("aria-label", "지도 보기");
+        
+        // 구분선 숨기기
+        if (dividerLine) dividerLine.style.display = "none";
       } else {
         expandButton.style.right = "calc(50% - 15px)"; // 간격 조정에 맞게 수정
         const icon = expandButton.querySelector("i");
@@ -492,6 +456,9 @@ function initExpandButton() {
         }
         expandButton.querySelector("button").setAttribute("title", "전체화면 보기");
         expandButton.querySelector("i").setAttribute("aria-label", "전체화면 보기");
+        
+        // 구분선 표시
+        if (dividerLine) dividerLine.style.display = "block";
       }
 
       // 콘텐츠 및 지도 패널 애니메이션

@@ -5,6 +5,7 @@ let allProperties = []; // 모든 매물 데이터 저장
 let isShowingFavoritesOnly = false; // 찜한 매물만 보기 모드
 let activeFilters = {}; // 적용 중인 필터
 let favoriteProperties = []; // 찜한 매물 목록 배열
+let activeFilterMenu = null; // 현재 활성화된 필터 메뉴
 
 // 필터 초기화 함수
 function initFilters() {
@@ -25,9 +26,17 @@ function initFilters() {
           }
         });
         
+        // 다른 모든 필터 토글 버튼에서 active 클래스 제거
+        document.querySelectorAll('.filter-toggle').forEach(toggle => {
+          if (toggle !== this) {
+            toggle.classList.remove('active');
+          }
+        });
+        
         // 현재 메뉴 열기
         menuElement.classList.remove('hidden');
         this.classList.add('active');
+        activeFilterMenu = menuElement; // 현재 활성화된 메뉴 저장
         
         // 메뉴 위치 조정 (화면 밖으로 나가지 않도록)
         const rect = menuElement.getBoundingClientRect();
@@ -47,6 +56,7 @@ function initFilters() {
         // 현재 메뉴 닫기
         menuElement.classList.add('hidden');
         this.classList.remove('active');
+        activeFilterMenu = null; // 활성화된 메뉴 초기화
       }
     });
   });
@@ -61,6 +71,7 @@ function initFilters() {
       document.querySelectorAll('.filter-toggle').forEach(toggle => {
         toggle.classList.remove('active');
       });
+      activeFilterMenu = null; // 활성화된 메뉴 초기화
     }
   });
   
@@ -120,7 +131,8 @@ function initFilters() {
     btn.addEventListener('click', function() {
       // 부모 필터 메뉴 찾기
       const filterMenu = this.closest('.filter-menu');
-      const filterType = filterMenu.closest('.filter-dropdown').querySelector('.filter-toggle').getAttribute('data-filter');
+      const filterToggle = filterMenu.closest('.filter-dropdown').querySelector('.filter-toggle');
+      const filterType = filterToggle.getAttribute('data-filter');
       
       // 필터 값 수집
       if (filterType === 'property-type') {
@@ -157,7 +169,8 @@ function initFilters() {
       
       // 메뉴 닫기
       filterMenu.classList.add('hidden');
-      filterMenu.closest('.filter-dropdown').querySelector('.filter-toggle').classList.remove('active');
+      filterToggle.classList.remove('active');
+      activeFilterMenu = null; // 활성화된 메뉴 초기화
       
       // 필터 적용하여 매물 리스트 업데이트
       filterAndUpdateProperties();

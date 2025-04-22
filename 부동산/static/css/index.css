@@ -38,10 +38,11 @@ button:active {
   transform: translateY(1px);
 }
 
-/* 네비게이션 아이템 스타일 */
+/* 네비게이션 아이템 스타일 - 수정됨 */
 .nav-item {
   position: relative;
   overflow: hidden;
+  color: #000000 !important;
 }
 
 .nav-item::after {
@@ -57,10 +58,21 @@ button:active {
 }
 
 .nav-item:hover {
-  color: #4b5563 !important; /* 호버 시 어두운 회색으로 변경 */
+  color: #000000 !important; /* 호버 시 검정색 유지 */
 }
 
 .nav-item:hover::after {
+  width: 80%;
+}
+
+/* 활성화된 네비게이션 항목 - 수정됨 */
+.nav-item.active {
+  background-color: rgba(232, 228, 217, 0.3);
+  color: #a59e8c !important; /* 클릭 시 밝은 색상으로 변경 */
+  font-weight: 500;
+}
+
+.nav-item.active::after {
   width: 80%;
 }
 
@@ -305,17 +317,6 @@ input:checked + .slider:before {
   background-color: #f8f9fa;
 }
 
-/* 활성화된 네비게이션 항목 */
-.nav-item.active {
-  background-color: rgba(232, 228, 217, 0.3);
-  color: #1f2937;
-  font-weight: 500;
-}
-
-.nav-item.active::after {
-  width: 80%;
-}
-
 /* 범죄 마커 스타일 */
 .crime-marker {
   position: absolute;
@@ -439,7 +440,7 @@ input:checked + .slider:before {
   animation: spin 1s linear infinite;
 }
 
-/* 필터 메뉴 스타일 */
+/* 필터 메뉴 스타일 - 수정됨 */
 .filter-dropdown {
   position: relative;
 }
@@ -452,6 +453,10 @@ input:checked + .slider:before {
 
 .filter-menu h4 {
   margin-top: 0;
+}
+
+.filter-toggle {
+  transition: all 0.2s ease-in-out;
 }
 
 .filter-toggle.active {
@@ -511,6 +516,18 @@ input:checked + .slider:before {
   color: #1f2937;
 }
 
+/* 구분선 스타일 - 추가됨 */
+.divider-line {
+  position: absolute;
+  left: calc(50% - 75px);
+  top: 72px;
+  height: calc(100vh - 72px);
+  width: 6px;
+  background-color: #e8e4d9;
+  z-index: 30;
+  border-radius: 3px;
+}
+
 /* 모바일 반응형 스타일 */
 @media (max-width: 768px) {
   #content-pane {
@@ -524,6 +541,10 @@ input:checked + .slider:before {
   }
 
   #expand-button {
+      display: none;
+  }
+  
+  .divider-line {
       display: none;
   }
 
