@@ -1,0 +1,214 @@
+{# template/index.html #}
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>리브온 부동산</title>
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script>
+        tailwind.config = { 
+            theme: { 
+                extend: { 
+                    colors: { 
+                        primary: '#E8E4D9', 
+                        secondary: '#B7B4A8' 
+                    }, 
+                    borderRadius: { 
+                        'none': '0px', 
+                        'sm': '4px', 
+                        DEFAULT: '8px', 
+                        'md': '12px', 
+                        'lg': '16px', 
+                        'xl': '20px', 
+                        '2xl': '24px', 
+                        '3xl': '32px', 
+                        'full': '9999px', 
+                        'button': '8px' 
+                    } 
+                } 
+            } 
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+    <link rel="stylesheet" href="../static/css/index.css">
+    <style>
+        @font-face {
+            font-family: 'Pretendard';
+            src: url("../static/font/PRETENDARD-BLACK.OTF") format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'KBO DIA GOTHIC';
+            src: url("../static/font/KBO DIA GOTHIC_MEDIUM.OTF") format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        body {
+            font-family: 'Pretendard', sans-serif !important;
+        }
+        
+        .nav-item, .filter-item {
+            font-family: 'KBO DIA GOTHIC', sans-serif !important;
+            color: #000000 !important;
+        }
+        
+        .login-btn {
+            color: #000000 !important;
+        }
+    </style>
+    
+    <!-- 카카오 지도 API 직접 로드 -->
+    <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=40fb6364d861d0e68d9b3ac4eacd0eb4"></script>
+    <script>
+        // 페이지 로드 후 지도 초기화
+        window.onload = function() {
+            // 콘솔 디버깅 메시지
+            console.log("문서 로드 완료, 지도 초기화 시작");
+            
+            // 지도 컨테이너 확인
+            const mapContainer = document.getElementById('kakao-map');
+            if (!mapContainer) {
+                console.error("지도 컨테이너(kakao-map)를 찾을 수 없습니다");
+                return;
+            }
+            
+            console.log("지도 컨테이너 크기:", mapContainer.offsetWidth, "x", mapContainer.offsetHeight);
+            
+            try {
+                // 지도 옵션 설정
+                const options = {
+                    center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심
+                    level: 3 // 확대 레벨
+                };
+                
+                // 지도 생성
+                window.map = new kakao.maps.Map(mapContainer, options);
+                console.log("카카오맵 생성 성공");
+            } catch (error) {
+                console.error("지도 초기화 중 오류 발생:", error);
+            }
+        };
+    </script>
+</head>
+
+<body class="bg-white">
+    <!-- 헤더 -->
+    <header class="fixed top-0 left-0 right-0 bg-white shadow-sm z-50">
+        <div class="container mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="#" class="flex items-center ml-0">
+                <img src="../static/image/LIVON 로고 배경제거.png" alt="리브온 부동산" class="h-10">
+            </a>
+            <nav class="flex items-center justify-center space-x-8">
+                <button data-section="property-search"
+                    class="nav-item text-black hover:text-black transition-all duration-300 px-4 py-2">매물검색</button>
+                <button data-section="news"
+                    class="nav-item text-black hover:text-black transition-all duration-300 px-4 py-2">뉴스</button>
+                <button data-section="weather"
+                    class="nav-item text-black hover:text-black transition-all duration-300 px-4 py-2">날씨</button>
+                <button data-section="crime-map"
+                    class="nav-item text-black hover:text-black transition-all duration-300 px-4 py-2">범죄발생지역</button>
+            </nav>
+            <button
+                class="login-btn text-black px-6 py-2 rounded-button font-medium whitespace-nowrap hover:text-primary transition-colors mr-0">
+                로그인
+            </button>
+        </div>
+    </header>
+    
+    <!-- 메인 섹션 -->
+    <div class="flex min-h-screen pt-[72px] relative">
+        <div id="content-pane"
+            class="w-[50%] h-[calc(100vh-72px)] sticky top-[72px] transition-all duration-300 ease-in-out overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+            <div id="expand-button" class="fixed top-6 right-[50%] z-50">
+                <button
+                    class="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95"
+                    title="전체화면 보기">
+                    <i class="ri-arrow-left-line text-lg text-gray-800" aria-label="전체화면 보기"></i>
+                </button>
+            </div>
+            <div
+                class="h-full overflow-y-auto px-6 py-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                <div class="w-full max-w-3xl">
+                    <!-- 검색 바 -->
+                    <div class="relative mb-4">
+                        <input type="text" id="location-search" placeholder="지역명을 입력하세요"
+                            class="w-full px-4 py-3 pr-12 text-gray-700 bg-white border border-gray-200 rounded-lg shadow-sm text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+                        <button
+                            class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700"
+                            title="검색">
+                            <i class="ri-search-line text-lg" aria-label="검색"></i>
+                        </button>
+                        <!-- 자동완성 드롭다운 -->
+                        <div id="search-autocomplete"
+                            class="hidden absolute w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                        </div>
+                    </div>
+                    
+                    <!-- 필터 바 -->
+                    <div class="flex flex-wrap gap-3 mb-6 pb-4 border-b border-gray-200">
+                        <button
+                            class="filter-item px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-primary hover:text-primary flex items-center gap-1 whitespace-nowrap">
+                            <i class="ri-home-4-line"></i>
+                            매물 유형
+                            <i class="ri-arrow-down-s-line ml-1"></i>
+                        </button>
+                        <button
+                            class="filter-item px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-primary hover:text-primary flex items-center gap-1 whitespace-nowrap">
+                            <i class="ri-money-dollar-circle-line"></i>
+                            가격대
+                            <i class="ri-arrow-down-s-line ml-1"></i>
+                        </button>
+                        <button
+                            class="filter-item px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-primary hover:text-primary flex items-center gap-1 whitespace-nowrap">
+                            <i class="ri-layout-2-line"></i>
+                            면적
+                            <i class="ri-arrow-down-s-line ml-1"></i>
+                        </button>
+                        <button
+                            class="filter-item px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-primary hover:text-primary flex items-center gap-1 whitespace-nowrap">
+                            <i class="ri-compass-3-line"></i>
+                            방향
+                            <i class="ri-arrow-down-s-line ml-1"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- 매물 목록 - 동적으로 채워집니다 -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="col-span-2 p-8 text-center">
+                            <div class="inline-block w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                            <p class="mt-4 text-gray-500">주변 매물을 불러오는 중입니다...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="map-pane"
+            class="w-[50%] bg-gray-50 h-[calc(100vh-72px)] fixed right-0 top-[72px] transition-all duration-300 ease-in-out">
+            <!-- 카카오맵으로 대체 -->
+            <div id="kakao-map" class="w-full h-full"></div>
+            <!-- 지도 위에 표시될 정보 패널 -->
+            <div class="absolute inset-0 p-4 pointer-events-none">
+                <div class="bg-white/90 rounded-lg shadow-md p-4 mb-4 pointer-events-auto max-w-xs">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">매물 지도</h3>
+                    <p class="text-gray-600">현재 위치 반경 2km 내의 매물을 표시합니다</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API 모듈을 먼저 로드한 후 메인 스크립트 로드 -->
+    <script src="../static/js/api.js"></script>
+    <script src="../static/js/index.js"></script>
+</body>
+
+</html>
