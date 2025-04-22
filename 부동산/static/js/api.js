@@ -23,7 +23,7 @@ function loadPropertiesInBounds(swLat, swLng, neLat, neLng) {
         });
 }
 
-// 현재 위치 기반으로 반경 내 매물 조회 (새로 추가)
+// 현재 위치 기반으로 반경 내 매물 조회 (수정됨)
 function loadPropertiesNearby(lat, lng, radiusKm = 2) {
     // 반경을 위도/경도 범위로 변환
     const latDelta = radiusKm / 111; // 위도 1도는 약 111km
@@ -54,8 +54,19 @@ function getSampleProperties(swLat, swLng, neLat, neLng, centerLat, centerLng, r
         centerLng = (swLng + neLng) / 2;
     }
     
-    // 임의의 샘플 매물 생성 (5~10개)
-    const count = Math.floor(Math.random() * 6) + 5;
+    // 현재 지도 확대 레벨에 따라 샘플 데이터 수 조정
+    let count = 5; // 기본값
+    
+    // 반경이 클수록 더 많은 매물 생성
+    if (radius) {
+        if (radius <= 1) count = Math.floor(Math.random() * 3) + 3; // 1km 이하: 3~5개
+        else if (radius <= 3) count = Math.floor(Math.random() * 6) + 5; // 1~3km: 5~10개
+        else if (radius <= 5) count = Math.floor(Math.random() * 8) + 8; // 3~5km: 8~15개
+        else count = Math.floor(Math.random() * 10) + 15; // 5km 이상: 15~24개
+    } else {
+        count = Math.floor(Math.random() * 6) + 5; // 기본값: 5~10개
+    }
+    
     const properties = [];
     
     const propertyTypes = ['아파트', '오피스텔', '빌라/투룸', '단독주택', '상가'];
@@ -165,7 +176,48 @@ function searchLocation(query) {
         .then(response => response.json())
         .catch(error => {
             console.error("검색 실패:", error);
-            return { error: "검색 중 오류가 발생했습니다." };
+            
+            // 실패 시 샘플 검색 결과 반환
+            const mockLocations = {
+                '강남': { lat: 37.5172, lng: 127.0473 },
+                '서초': { lat: 37.4837, lng: 127.0324 },
+                '용산': { lat: 37.5384, lng: 126.9654 },
+                '마포': { lat: 37.5561, lng: 126.9087 },
+                '송파': { lat: 37.5145, lng: 127.1060 }
+            };
+            
+            // 검색어와 일치하는 지역이 있는지 확인
+            let matchedLocation = null;
+            for (const [key, coords] of Object.entries(mockLocations)) {
+                if (query.includes(key)) {
+                    matchedLocation = { key, coords };
+                    break;
+                }
+            }
+            
+            // 일치하는 지역이 있으면 해당 지역의 샘플 데이터 반환
+            if (matchedLocation) {
+                const { key, coords } = matchedLocation;
+                return {
+                    success: true,
+                    query: query,
+                    coordinates: coords,
+                    properties: getSampleProperties(
+                        coords.lat - 0.02, coords.lng - 0.02, 
+                        coords.lat + 0.02, coords.lng + 0.02,
+                        coords.lat, coords.lng, 2
+                    )
+                };
+            }
+            
+            // 일치하는 지역이 없으면 기본 위치(서울시청) 반환
+            return {
+                success: false,
+                query: query,
+                message: "검색 결과가 없습니다",
+                coordinates: { lat: 37.5665, lng: 126.9780 },
+                properties: []
+            };
         });
 }
 

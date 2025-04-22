@@ -28,12 +28,12 @@ function showLoading(isLoading) {
     // 컨테이너 초기화
     propertyListContainer.innerHTML = '';
     
-    // 매물이 없는 경우
+    // 매물이 없는 경우 - 메시지 수정
     if (!properties || properties.length === 0) {
       propertyListContainer.innerHTML = `
         <div class="col-span-2 p-8 text-center bg-gray-50 rounded-lg">
           <i class="ri-home-5-line text-4xl text-gray-400 mb-4"></i>
-          <p class="text-gray-500">주변 2km 반경 내에 매물이 없습니다.</p>
+          <p class="text-gray-500">주변에 매물이 없습니다.</p>
         </div>
       `;
       return;

@@ -31,9 +31,17 @@ function initFilters() {
         
         // 메뉴 위치 조정 (화면 밖으로 나가지 않도록)
         const rect = menuElement.getBoundingClientRect();
+        
+        // 고정 헤더 및 검색필터 영역 고려하여 위치 조정
         if (rect.right > window.innerWidth) {
           menuElement.style.left = 'auto';
           menuElement.style.right = '0';
+        }
+        
+        // 메뉴가 화면 아래로 넘어가는 경우 처리
+        if (rect.bottom > window.innerHeight) {
+          menuElement.style.maxHeight = `${window.innerHeight - rect.top - 20}px`;
+          menuElement.style.overflowY = 'auto';
         }
       } else {
         // 현재 메뉴 닫기
