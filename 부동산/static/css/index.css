@@ -55,6 +55,10 @@ button:active {
   transform: translateX(-50%);
 }
 
+.nav-item:hover {
+  color: #4b5563 !important; /* 호버 시 어두운 회색으로 변경 */
+}
+
 .nav-item:hover::after {
   width: 80%;
 }
@@ -77,24 +81,32 @@ button:active {
   background: #9ca3af;
 }
 
-/* 매핑 패널 트랜지션 - 간격 조정 (30px) */
+/* 매핑 패널 트랜지션 - 간격 조정 (30px) 및 지도 확장 (120px) */
 #map-pane {
   transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out, width 0.3s ease-in-out;
   z-index: 10; /* 지도 패널이 다른 요소보다 위에 있게 함 */
   display: block !important; /* 지도 패널이 항상 보이도록 함 */
-  width: calc(50% + 15px) !important; /* 지도 패널의 너비를 조정하여 간격 30px로 유지 */
-  margin-left: -15px; /* 간격 30px로 조정하기 위한 왼쪽 여백 */
+  width: calc(50% + 75px) !important; /* 지도 패널의 너비를 120px 더 넓게 조정 */
+  margin-left: -75px; /* 지도 패널을 왼쪽으로 확장 */
 }
 
 #content-pane {
   transition: width 0.3s ease-in-out;
-  width: calc(50% - 15px) !important; /* 콘텐츠 패널의 너비를 조정하여 간격 30px로 유지 */
+  width: calc(50% - 75px) !important; /* 콘텐츠 패널의 너비를 줄여서 지도 확장 공간 확보 */
   padding-right: 15px; /* 오른쪽 여백 추가 */
+  background-color: #f9f9f9; /* 아주 밝은 회색 배경색 추가 */
+}
+
+/* 검색 및 필터 영역 고정 스타일 */
+#content-pane .sticky {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+  z-index: 20;
 }
 
 #expand-button {
   transition: right 0.3s ease-in-out;
-  right: calc(50% - 15px) !important; /* 확장 버튼 위치 조정 */
+  right: calc(50% - 75px) !important; /* 확장 버튼 위치 조정 */
 }
 
 /* 숫자 입력 화살표 제거 */
@@ -519,21 +531,5 @@ input:checked + .slider:before {
     right: 10px;
     width: auto;
     max-width: none;
-  }
-}
-
-/* 다크 모드 지원 */
-@media (prefers-color-scheme: dark) {
-  .dark-mode-toggle .map-info-window {
-      background-color: #1f2937;
-      color: #e5e7eb;
-  }
-
-  .dark-mode-toggle .map-info-window h4 {
-      color: #f3f4f6;
-  }
-
-  .dark-mode-toggle .map-info-window p {
-      color: #d1d5db;
   }
 }

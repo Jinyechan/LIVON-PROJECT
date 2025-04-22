@@ -58,7 +58,7 @@ function getSampleProperties(swLat, swLng, neLat, neLng, centerLat, centerLng, r
     const count = Math.floor(Math.random() * 6) + 5;
     const properties = [];
     
-    const propertyTypes = ['아파트', '오피스텔', '빌라', '단독주택', '상가'];
+    const propertyTypes = ['아파트', '오피스텔', '빌라/투룸', '단독주택', '상가'];
     const areas = ['강남구', '서초구', '용산구', '마포구', '송파구', '종로구', '중구', '성북구'];
     const directions = ['남향', '남동향', '남서향', '동향', '서향', '북향', '북동향', '북서향'];
     const dealTypes = ['매매', '전세', '월세'];
@@ -93,6 +93,8 @@ function getSampleProperties(swLat, swLng, neLat, neLng, centerLat, centerLng, r
         
         // 임의 면적 생성 (20~200㎡)
         const area = Math.floor(Math.random() * 180) + 20;
+        // 면적을 평수로도 변환
+        const areaPyung = Math.round(area / 3.3058 * 10) / 10; // 소수점 첫째자리까지 반올림
         
         // 거래 유형에 따른 가격 표시 및 관련 데이터 설정
         let monthlyPrice = null;
@@ -133,7 +135,7 @@ function getSampleProperties(swLat, swLng, neLat, neLng, centerLat, centerLng, r
             description: `${areaName}에 위치한 ${direction} ${type}입니다. 역세권, 편의시설 인접.`,
             price: price * 10000, // 실제 가격 (원)
             formattedPrice: formattedPrice,
-            area: `${area}㎡`,
+            area: `${area}㎡ (${areaPyung}평)`,
             type: type,
             location: `${areaName}, 서울`,
             direction: direction,
@@ -317,6 +319,12 @@ function filterProperties(properties, filters) {
         // 매물 유형 필터
         if (filters.propertyType && filters.propertyType.length > 0) {
             if (!property.type || !filters.propertyType.includes(property.type)) {
+                // 빌라/투룸 특수 처리
+                if (filters.propertyType.includes('빌라/투룸')) {
+                    if (property.type === '빌라' || property.type === '투룸') {
+                        return true;
+                    }
+                }
                 return false;
             }
         }
@@ -334,13 +342,16 @@ function filterProperties(properties, filters) {
         
         // 면적 필터
         if (filters.area) {
-            // 면적 문자열(예: "80㎡")에서 숫자만 추출
+            // 면적 문자열(예: "80㎡ (24.2평)")에서 제곱미터 숫자만 추출
             const areaMatch = property.area && property.area.match(/(\d+\.?\d*)/);
             if (!areaMatch) return true; // 면적 정보가 없으면 필터링하지 않음
             
-            const area = parseFloat(areaMatch[1]);
-            if (filters.area.min && area < filters.area.min) return false;
-            if (filters.area.max && area > filters.area.max) return false;
+            const areaSqm = parseFloat(areaMatch[1]);
+            // 제곱미터를 평으로 변환하여 비교
+            const areaPyung = areaSqm / 3.3058;
+            
+            if (filters.area.min && areaPyung < (filters.area.min / 3.3058)) return false;
+            if (filters.area.max && areaPyung > (filters.area.max / 3.3058)) return false;
         }
         
         // 방향 필터
