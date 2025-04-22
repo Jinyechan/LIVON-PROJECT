@@ -60,6 +60,8 @@ function getSampleProperties(swLat, swLng, neLat, neLng, centerLat, centerLng, r
     
     const propertyTypes = ['아파트', '오피스텔', '빌라', '단독주택', '상가'];
     const areas = ['강남구', '서초구', '용산구', '마포구', '송파구', '종로구', '중구', '성북구'];
+    const directions = ['남향', '남동향', '남서향', '동향', '서향', '북향', '북동향', '북서향'];
+    const dealTypes = ['매매', '전세', '월세'];
     
     for (let i = 0; i < count; i++) {
         // 주어진 중심에서 랜덤한 위치 생성 (반경 내)
@@ -77,32 +79,67 @@ function getSampleProperties(swLat, swLng, neLat, neLng, centerLat, centerLng, r
         const price = Math.floor(Math.random() * 1400) + 100;
         let formattedPrice = '';
         
-        if (price >= 10000) {
-            const uk = Math.floor(price / 10000);
-            const man = price % 10000;
-            formattedPrice = `${uk}억 ${man > 0 ? man + '만' : ''}원`;
-        } else {
-            formattedPrice = `${price}만원`;
-        }
-        
-        // 임의 면적 생성 (20~200㎡)
-        const area = Math.floor(Math.random() * 180) + 20;
-        
         // 물건 유형 선택
         const type = propertyTypes[Math.floor(Math.random() * propertyTypes.length)];
         
         // 지역 선택
         const areaName = areas[Math.floor(Math.random() * areas.length)];
         
+        // 방향 선택
+        const direction = directions[Math.floor(Math.random() * directions.length)];
+        
+        // 거래 유형 선택
+        const dealType = dealTypes[Math.floor(Math.random() * dealTypes.length)];
+        
+        // 임의 면적 생성 (20~200㎡)
+        const area = Math.floor(Math.random() * 180) + 20;
+        
+        // 거래 유형에 따른 가격 표시 및 관련 데이터 설정
+        let monthlyPrice = null;
+        let depositAmount = null;
+        
+        if (dealType === '매매') {
+            if (price >= 10000) {
+                const uk = Math.floor(price / 10000);
+                const man = price % 10000;
+                formattedPrice = `${uk}억 ${man > 0 ? man + '만' : ''}원`;
+            } else {
+                formattedPrice = `${price}만원`;
+            }
+        } else if (dealType === '전세') {
+            if (price >= 10000) {
+                const uk = Math.floor(price / 10000);
+                const man = price % 10000;
+                formattedPrice = `전세 ${uk}억 ${man > 0 ? man + '만' : ''}원`;
+            } else {
+                formattedPrice = `전세 ${price}만원`;
+            }
+        } else { // 월세
+            depositAmount = Math.floor(price / 10); // 보증금 (매매가의 1/10)
+            monthlyPrice = Math.floor(Math.random() * 100) + 50; // 월세 (50~150만원)
+            
+            if (depositAmount >= 10000) {
+                const uk = Math.floor(depositAmount / 10000);
+                const man = depositAmount % 10000;
+                formattedPrice = `월세 ${uk}억 ${man > 0 ? man + '만' : ''} / ${monthlyPrice}만원`;
+            } else {
+                formattedPrice = `월세 ${depositAmount}만 / ${monthlyPrice}만원`;
+            }
+        }
+        
         properties.push({
             id: `property-${Date.now()}-${i}`,
             title: `${areaName} ${type} ${i+1}호`,
-            description: `${areaName}에 위치한 ${type}입니다. 역세권, 편의시설 인접.`,
+            description: `${areaName}에 위치한 ${direction} ${type}입니다. 역세권, 편의시설 인접.`,
             price: price * 10000, // 실제 가격 (원)
             formattedPrice: formattedPrice,
             area: `${area}㎡`,
             type: type,
             location: `${areaName}, 서울`,
+            direction: direction,
+            dealType: dealType,
+            monthlyPrice: monthlyPrice,
+            depositAmount: depositAmount,
             coordinates: {
                 lat: lat,
                 lng: lng
@@ -271,6 +308,53 @@ async function loadRealTradingData(regionCode = '11680') {
     }
 }
 
+// 매물 필터링 함수
+function filterProperties(properties, filters) {
+    if (!properties || properties.length === 0) return [];
+    if (!filters || Object.keys(filters).length === 0) return properties;
+    
+    return properties.filter(property => {
+        // 매물 유형 필터
+        if (filters.propertyType && filters.propertyType.length > 0) {
+            if (!property.type || !filters.propertyType.includes(property.type)) {
+                return false;
+            }
+        }
+        
+        // 가격 필터
+        if (filters.price) {
+            if (property.dealType === '매매' || property.dealType === '전세') {
+                if (filters.price.min && property.price < filters.price.min) return false;
+                if (filters.price.max && property.price > filters.price.max) return false;
+            } else if (property.dealType === '월세') {
+                if (filters.price.monthlyMin && property.monthlyPrice * 10000 < filters.price.monthlyMin) return false;
+                if (filters.price.monthlyMax && property.monthlyPrice * 10000 > filters.price.monthlyMax) return false;
+            }
+        }
+        
+        // 면적 필터
+        if (filters.area) {
+            // 면적 문자열(예: "80㎡")에서 숫자만 추출
+            const areaMatch = property.area && property.area.match(/(\d+\.?\d*)/);
+            if (!areaMatch) return true; // 면적 정보가 없으면 필터링하지 않음
+            
+            const area = parseFloat(areaMatch[1]);
+            if (filters.area.min && area < filters.area.min) return false;
+            if (filters.area.max && area > filters.area.max) return false;
+        }
+        
+        // 방향 필터
+        if (filters.direction && filters.direction.length > 0) {
+            if (!property.direction || !filters.direction.includes(property.direction)) {
+                return false;
+            }
+        }
+        
+        // 모든 필터를 통과한 경우
+        return true;
+    });
+}
+
 // 지역코드 맵핑 (일부 지역 예시)
 const regionCodeMap = {
     '강남구': '11680',
@@ -303,12 +387,13 @@ function getRegionCode(regionName) {
 const API = {
     loadPropertyData,
     loadPropertiesInBounds,
-    loadPropertiesNearby, // 새로 추가된 함수
+    loadPropertiesNearby, 
     searchLocation,
     geocodeLocation,
     loadWeatherData,
     loadNewsData,
     loadCrimeData,
     loadRealTradingData,
-    getRegionCode
+    getRegionCode,
+    filterProperties
 };

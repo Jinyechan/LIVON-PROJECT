@@ -77,21 +77,24 @@ button:active {
   background: #9ca3af;
 }
 
-/* 매핑 패널 트랜지션 */
+/* 매핑 패널 트랜지션 - 간격 조정 (30px) */
 #map-pane {
   transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out, width 0.3s ease-in-out;
   z-index: 10; /* 지도 패널이 다른 요소보다 위에 있게 함 */
   display: block !important; /* 지도 패널이 항상 보이도록 함 */
-  width: 50% !important; /* 지도 패널의 너비를 고정 */
+  width: calc(50% + 15px) !important; /* 지도 패널의 너비를 조정하여 간격 30px로 유지 */
+  margin-left: -15px; /* 간격 30px로 조정하기 위한 왼쪽 여백 */
 }
 
 #content-pane {
   transition: width 0.3s ease-in-out;
-  width: 50% !important; /* 콘텐츠 패널의 너비를 고정 */
+  width: calc(50% - 15px) !important; /* 콘텐츠 패널의 너비를 조정하여 간격 30px로 유지 */
+  padding-right: 15px; /* 오른쪽 여백 추가 */
 }
 
 #expand-button {
   transition: right 0.3s ease-in-out;
+  right: calc(50% - 15px) !important; /* 확장 버튼 위치 조정 */
 }
 
 /* 숫자 입력 화살표 제거 */
@@ -412,14 +415,88 @@ input:checked + .slider:before {
   animation: spin 1s linear infinite;
 }
 
+/* 필터 메뉴 스타일 */
+.filter-dropdown {
+  position: relative;
+}
+
+.filter-menu {
+  min-width: 240px;
+  max-width: 320px;
+  z-index: 50;
+}
+
+.filter-menu h4 {
+  margin-top: 0;
+}
+
+.filter-toggle.active {
+  border-color: #e8e4d9;
+  background-color: rgba(232, 228, 217, 0.1);
+}
+
+/* 찜 버튼 스타일 */
+.favorite-btn {
+  transition: all 0.2s ease-in-out;
+}
+
+.favorite-btn:hover {
+  transform: scale(1.1);
+}
+
+.favorite-btn.active i {
+  color: #ef4444;
+  fill: #ef4444;
+}
+
+.favorite-btn.active {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+#favorites-filter.active {
+  border-color: #ef4444;
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+/* 필터 적용 버튼 */
+.filter-apply-btn {
+  transition: all 0.2s ease;
+}
+
+.filter-apply-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 면적 슬라이더 스타일 */
+#area-min, #area-max {
+  margin: 10px 0;
+}
+
+.area-preset {
+  transition: all 0.2s ease;
+}
+
+.area-preset:hover {
+  background-color: rgba(232, 228, 217, 0.3);
+}
+
+.area-preset.active {
+  background-color: #e8e4d9;
+  color: #1f2937;
+}
+
 /* 모바일 반응형 스타일 */
 @media (max-width: 768px) {
   #content-pane {
       width: 100% !important;
+      padding-right: 0;
   }
 
   #map-pane {
       display: none;
+      margin-left: 0;
   }
 
   #expand-button {
@@ -433,6 +510,15 @@ input:checked + .slider:before {
 
   .grid {
       grid-template-columns: 1fr !important;
+  }
+  
+  .filter-menu {
+    position: fixed;
+    top: 80px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-width: none;
   }
 }
 

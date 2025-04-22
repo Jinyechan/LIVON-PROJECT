@@ -156,29 +156,157 @@
                     
                     <!-- 필터 바 -->
                     <div class="flex flex-wrap gap-3 mb-6 pb-4 border-b border-gray-200">
-                        <button
-                            class="filter-item px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-primary hover:text-primary flex items-center gap-1 whitespace-nowrap">
-                            <i class="ri-home-4-line"></i>
-                            매물 유형
-                            <i class="ri-arrow-down-s-line ml-1"></i>
-                        </button>
-                        <button
-                            class="filter-item px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-primary hover:text-primary flex items-center gap-1 whitespace-nowrap">
-                            <i class="ri-money-dollar-circle-line"></i>
-                            가격대
-                            <i class="ri-arrow-down-s-line ml-1"></i>
-                        </button>
-                        <button
-                            class="filter-item px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-primary hover:text-primary flex items-center gap-1 whitespace-nowrap">
-                            <i class="ri-layout-2-line"></i>
-                            면적
-                            <i class="ri-arrow-down-s-line ml-1"></i>
-                        </button>
-                        <button
-                            class="filter-item px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-primary hover:text-primary flex items-center gap-1 whitespace-nowrap">
-                            <i class="ri-compass-3-line"></i>
-                            방향
-                            <i class="ri-arrow-down-s-line ml-1"></i>
+                        <!-- 매물 유형 필터 -->
+                        <div class="relative filter-dropdown">
+                            <button class="filter-item filter-toggle px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-primary hover:text-primary flex items-center gap-1 whitespace-nowrap" data-filter="property-type">
+                                <i class="ri-home-4-line"></i>
+                                매물 유형
+                                <i class="ri-arrow-down-s-line ml-1"></i>
+                            </button>
+                            <div class="filter-menu hidden absolute top-full left-0 mt-2 p-4 bg-white border border-gray-200 rounded-lg shadow-lg z-20 w-64">
+                                <h4 class="font-medium text-gray-800 mb-3">매물 유형</h4>
+                                <div class="flex flex-col gap-2">
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" name="property-type" value="아파트">
+                                        <span>아파트</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" name="property-type" value="오피스텔">
+                                        <span>오피스텔</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" name="property-type" value="빌라">
+                                        <span>빌라</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" name="property-type" value="단독주택">
+                                        <span>단독주택</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" name="property-type" value="상가">
+                                        <span>상가</span>
+                                    </label>
+                                </div>
+                                <div class="flex justify-end mt-4">
+                                    <button class="filter-apply-btn bg-primary hover:bg-primary/90 text-gray-800 py-1.5 px-4 rounded-md text-sm">적용</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 가격대 필터 -->
+                        <div class="relative filter-dropdown">
+                            <button class="filter-item filter-toggle px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-primary hover:text-primary flex items-center gap-1 whitespace-nowrap" data-filter="price-range">
+                                <i class="ri-money-dollar-circle-line"></i>
+                                가격대
+                                <i class="ri-arrow-down-s-line ml-1"></i>
+                            </button>
+                            <div class="filter-menu hidden absolute top-full left-0 mt-2 p-4 bg-white border border-gray-200 rounded-lg shadow-lg z-20 w-72">
+                                <h4 class="font-medium text-gray-800 mb-3">가격대</h4>
+                                <div class="flex flex-col gap-4">
+                                    <div>
+                                        <p class="text-sm mb-2">매매/전세 (단위: 억원)</p>
+                                        <div class="flex items-center gap-3">
+                                            <input type="number" min="0" max="100" placeholder="최소" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" id="price-min">
+                                            <span class="text-gray-400">~</span>
+                                            <input type="number" min="0" max="100" placeholder="최대" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" id="price-max">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm mb-2">월세 (단위: 만원)</p>
+                                        <div class="flex items-center gap-3">
+                                            <input type="number" min="0" max="1000" placeholder="최소" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" id="monthly-min">
+                                            <span class="text-gray-400">~</span>
+                                            <input type="number" min="0" max="1000" placeholder="최대" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" id="monthly-max">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex justify-end mt-4">
+                                    <button class="filter-apply-btn bg-primary hover:bg-primary/90 text-gray-800 py-1.5 px-4 rounded-md text-sm">적용</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 면적 필터 -->
+                        <div class="relative filter-dropdown">
+                            <button class="filter-item filter-toggle px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-primary hover:text-primary flex items-center gap-1 whitespace-nowrap" data-filter="area-range">
+                                <i class="ri-layout-2-line"></i>
+                                면적
+                                <i class="ri-arrow-down-s-line ml-1"></i>
+                            </button>
+                            <div class="filter-menu hidden absolute top-full left-0 mt-2 p-4 bg-white border border-gray-200 rounded-lg shadow-lg z-20 w-64">
+                                <h4 class="font-medium text-gray-800 mb-3">면적</h4>
+                                <div class="flex flex-col gap-3">
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-sm text-gray-600">전용면적 (㎡)</span>
+                                        <span class="text-sm text-gray-600" id="area-display">0㎡ ~ 200㎡</span>
+                                    </div>
+                                    <input type="range" min="0" max="200" value="0" class="w-full custom-range" id="area-min">
+                                    <input type="range" min="0" max="200" value="200" class="w-full custom-range" id="area-max">
+                                    <div class="grid grid-cols-3 gap-2 mt-2">
+                                        <button class="area-preset px-2 py-1.5 bg-gray-100 hover:bg-gray-200 rounded text-sm" data-min="0" data-max="50">~50㎡</button>
+                                        <button class="area-preset px-2 py-1.5 bg-gray-100 hover:bg-gray-200 rounded text-sm" data-min="50" data-max="100">50~100㎡</button>
+                                        <button class="area-preset px-2 py-1.5 bg-gray-100 hover:bg-gray-200 rounded text-sm" data-min="100" data-max="200">100㎡~</button>
+                                    </div>
+                                </div>
+                                <div class="flex justify-end mt-4">
+                                    <button class="filter-apply-btn bg-primary hover:bg-primary/90 text-gray-800 py-1.5 px-4 rounded-md text-sm">적용</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 방향 필터 -->
+                        <div class="relative filter-dropdown">
+                            <button class="filter-item filter-toggle px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-primary hover:text-primary flex items-center gap-1 whitespace-nowrap" data-filter="direction">
+                                <i class="ri-compass-3-line"></i>
+                                방향
+                                <i class="ri-arrow-down-s-line ml-1"></i>
+                            </button>
+                            <div class="filter-menu hidden absolute top-full left-0 mt-2 p-4 bg-white border border-gray-200 rounded-lg shadow-lg z-20 w-64">
+                                <h4 class="font-medium text-gray-800 mb-3">방향</h4>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" name="direction" value="남향">
+                                        <span>남향</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" name="direction" value="남동향">
+                                        <span>남동향</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" name="direction" value="남서향">
+                                        <span>남서향</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" name="direction" value="동향">
+                                        <span>동향</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" name="direction" value="서향">
+                                        <span>서향</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" name="direction" value="북향">
+                                        <span>북향</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" name="direction" value="북동향">
+                                        <span>북동향</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" name="direction" value="북서향">
+                                        <span>북서향</span>
+                                    </label>
+                                </div>
+                                <div class="flex justify-end mt-4">
+                                    <button class="filter-apply-btn bg-primary hover:bg-primary/90 text-gray-800 py-1.5 px-4 rounded-md text-sm">적용</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 찜한 매물 필터 버튼 -->
+                        <button id="favorites-filter" class="filter-item px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-700 hover:border-red-400 hover:text-red-500 flex items-center gap-1 whitespace-nowrap">
+                            <i class="ri-heart-line"></i>
+                            찜한 매물만 보기
                         </button>
                     </div>
                     

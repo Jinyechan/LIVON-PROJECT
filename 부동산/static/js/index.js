@@ -7,6 +7,10 @@ document.addEventListener("DOMContentLoaded", function () {
   let map; // 카카오맵 인스턴스
   let currentMarkers = []; // 현재 지도에 표시된 마커들
   let radiusCircle; // 반경 원 객체
+  let favoriteProperties = []; // 찜한 매물 목록 배열
+  let allProperties = []; // 모든 매물 데이터 저장
+  let isShowingFavoritesOnly = false; // 찜한 매물만 보기 모드
+  let activeFilters = {}; // 적용 중인 필터
 
   // API 데이터 로드 함수
   function loadApiData() {
@@ -42,6 +46,7 @@ document.addEventListener("DOMContentLoaded", function () {
     initSearchAutocomplete();
     initExpandButton();
     initCustomControls();
+    initFilters(); // 필터 초기화 추가
     
     // 지도는 HTML에서 직접 초기화하므로 여기서는 초기화하지 않음
     console.log("지도는 HTML에서 직접 초기화됨");
@@ -51,7 +56,324 @@ document.addEventListener("DOMContentLoaded", function () {
     // 지도가 초기화된 후에 현재 위치 기반 매물 로드
     checkMapAndLoadData();
     
+    // 로컬 스토리지에서 찜 목록 불러오기
+    loadFavoritesFromStorage();
+    
     console.log("초기화 완료!");
+  }
+  
+  // 필터 초기화 함수
+  function initFilters() {
+    // 필터 토글 버튼 클릭 이벤트
+    document.querySelectorAll('.filter-toggle').forEach(button => {
+      button.addEventListener('click', function(event) {
+        event.stopPropagation(); // 이벤트 버블링 방지
+        
+        const filterType = this.getAttribute('data-filter');
+        const menuElement = this.closest('.filter-dropdown').querySelector('.filter-menu');
+        
+        // 현재 메뉴 토글
+        if (menuElement.classList.contains('hidden')) {
+          // 다른 열린 메뉴 모두 닫기
+          document.querySelectorAll('.filter-menu').forEach(menu => {
+            if (menu !== menuElement) {
+              menu.classList.add('hidden');
+            }
+          });
+          
+          // 현재 메뉴 열기
+          menuElement.classList.remove('hidden');
+          this.classList.add('active');
+          
+          // 메뉴 위치 조정 (화면 밖으로 나가지 않도록)
+          const rect = menuElement.getBoundingClientRect();
+          if (rect.right > window.innerWidth) {
+            menuElement.style.left = 'auto';
+            menuElement.style.right = '0';
+          }
+        } else {
+          // 현재 메뉴 닫기
+          menuElement.classList.add('hidden');
+          this.classList.remove('active');
+        }
+      });
+    });
+    
+    // 필터 외부 클릭 시 닫기
+    document.addEventListener('click', function(event) {
+      const isClickInsideFilter = event.target.closest('.filter-dropdown');
+      if (!isClickInsideFilter) {
+        document.querySelectorAll('.filter-menu').forEach(menu => {
+          menu.classList.add('hidden');
+        });
+        document.querySelectorAll('.filter-toggle').forEach(toggle => {
+          toggle.classList.remove('active');
+        });
+      }
+    });
+    
+    // 면적 슬라이더 초기화
+    const areaMin = document.getElementById('area-min');
+    const areaMax = document.getElementById('area-max');
+    const areaDisplay = document.getElementById('area-display');
+    
+    if (areaMin && areaMax && areaDisplay) {
+      // 슬라이더 값 변경 시 표시 업데이트
+      function updateAreaDisplay() {
+        const minVal = parseInt(areaMin.value);
+        const maxVal = parseInt(areaMax.value);
+        areaDisplay.textContent = `${minVal}㎡ ~ ${maxVal}㎡`;
+        
+        // 최소값이 최대값보다 크면 조정
+        if (minVal > maxVal) {
+          if (areaMin === document.activeElement) {
+            areaMax.value = minVal;
+          } else {
+            areaMin.value = maxVal;
+          }
+          updateAreaDisplay();
+        }
+      }
+      
+      areaMin.addEventListener('input', updateAreaDisplay);
+      areaMax.addEventListener('input', updateAreaDisplay);
+      
+      // 면적 프리셋 버튼 클릭 이벤트
+      document.querySelectorAll('.area-preset').forEach(btn => {
+        btn.addEventListener('click', function() {
+          // 모든 프리셋 버튼에서 활성 클래스 제거
+          document.querySelectorAll('.area-preset').forEach(b => b.classList.remove('active'));
+          
+          // 현재 버튼 활성화
+          this.classList.add('active');
+          
+          // 슬라이더 값 설정
+          areaMin.value = this.getAttribute('data-min');
+          areaMax.value = this.getAttribute('data-max');
+          
+          // 표시 업데이트
+          updateAreaDisplay();
+        });
+      });
+    }
+    
+    // 필터 적용 버튼 이벤트
+    document.querySelectorAll('.filter-apply-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        // 부모 필터 메뉴 찾기
+        const filterMenu = this.closest('.filter-menu');
+        const filterType = filterMenu.closest('.filter-dropdown').querySelector('.filter-toggle').getAttribute('data-filter');
+        
+        // 필터 값 수집
+        if (filterType === 'property-type') {
+          // 매물 유형 필터 적용
+          const checkedTypes = Array.from(filterMenu.querySelectorAll('input[name="property-type"]:checked'))
+            .map(input => input.value);
+          
+          activeFilters.propertyType = checkedTypes.length > 0 ? checkedTypes : null;
+        }
+        else if (filterType === 'price-range') {
+          // 가격대 필터 적용
+          const priceMin = document.getElementById('price-min').value;
+          const priceMax = document.getElementById('price-max').value;
+          const monthlyMin = document.getElementById('monthly-min').value;
+          const monthlyMax = document.getElementById('monthly-max').value;
+          
+          activeFilters.price = {
+            min: priceMin ? parseFloat(priceMin) * 10000 * 10000 : null, // 억 단위를 원 단위로 변환
+            max: priceMax ? parseFloat(priceMax) * 10000 * 10000 : null,
+            monthlyMin: monthlyMin ? parseFloat(monthlyMin) * 10000 : null, // 만원 단위를 원 단위로 변환
+            monthlyMax: monthlyMax ? parseFloat(monthlyMax) * 10000 : null
+          };
+        }
+        else if (filterType === 'area-range') {
+          // 면적 필터 적용
+          const areaMin = document.getElementById('area-min').value;
+          const areaMax = document.getElementById('area-max').value;
+          
+          activeFilters.area = {
+            min: areaMin ? parseFloat(areaMin) : null,
+            max: areaMax ? parseFloat(areaMax) : null
+          };
+        }
+        else if (filterType === 'direction') {
+          // 방향 필터 적용
+          const checkedDirections = Array.from(filterMenu.querySelectorAll('input[name="direction"]:checked'))
+            .map(input => input.value);
+          
+          activeFilters.direction = checkedDirections.length > 0 ? checkedDirections : null;
+        }
+        
+        // 메뉴 닫기
+        filterMenu.classList.add('hidden');
+        filterMenu.closest('.filter-dropdown').querySelector('.filter-toggle').classList.remove('active');
+        
+        // 필터 적용하여 매물 리스트 업데이트
+        filterAndUpdateProperties();
+        
+        console.log('현재 적용된 필터:', activeFilters);
+      });
+    });
+    
+    // 찜한 매물만 보기 버튼 이벤트
+    const favoritesFilterBtn = document.getElementById('favorites-filter');
+    if (favoritesFilterBtn) {
+      favoritesFilterBtn.addEventListener('click', function() {
+        this.classList.toggle('active');
+        isShowingFavoritesOnly = this.classList.contains('active');
+        
+        // 필터 적용하여 매물 리스트 업데이트
+        filterAndUpdateProperties();
+      });
+    }
+  }
+  
+  // 필터링 및 매물 리스트 업데이트 함수
+  function filterAndUpdateProperties() {
+    // 기존 매물 데이터 복사
+    let filteredProperties = [...allProperties];
+    
+    // 찜한 매물만 보기 필터 적용
+    if (isShowingFavoritesOnly) {
+      filteredProperties = filteredProperties.filter(property => 
+        favoriteProperties.includes(property.id)
+      );
+    }
+    
+    // 매물 유형 필터 적용
+    if (activeFilters.propertyType && activeFilters.propertyType.length > 0) {
+      filteredProperties = filteredProperties.filter(property => 
+        activeFilters.propertyType.includes(property.type)
+      );
+    }
+    
+    // 가격대 필터 적용
+    if (activeFilters.price) {
+      filteredProperties = filteredProperties.filter(property => {
+        // 실제 구현 시 매물 데이터에 거래 유형(매매/전세/월세)과 가격 정보가 있어야 함
+        const price = property.price; // 원 단위 가격
+        
+        // 매매, 전세인 경우 (price가 억 단위)
+        if (property.dealType === '매매' || property.dealType === '전세') {
+          if (activeFilters.price.min && price < activeFilters.price.min) return false;
+          if (activeFilters.price.max && price > activeFilters.price.max) return false;
+        }
+        // 월세인 경우
+        else if (property.dealType === '월세') {
+          const monthlyPrice = property.monthlyPrice || 0; // 월세 가격(만원)
+          if (activeFilters.price.monthlyMin && monthlyPrice < activeFilters.price.monthlyMin) return false;
+          if (activeFilters.price.monthlyMax && monthlyPrice > activeFilters.price.monthlyMax) return false;
+        }
+        return true;
+      });
+    }
+    
+    // 면적 필터 적용
+    if (activeFilters.area) {
+      filteredProperties = filteredProperties.filter(property => {
+        // 면적 문자열(예: "80㎡")에서 숫자만 추출
+        const areaMatch = property.area && property.area.match(/(\d+\.?\d*)/);
+        if (!areaMatch) return true; // 면적 정보가 없으면 필터링하지 않음
+        
+        const area = parseFloat(areaMatch[1]);
+        if (activeFilters.area.min && area < activeFilters.area.min) return false;
+        if (activeFilters.area.max && area > activeFilters.area.max) return false;
+        return true;
+      });
+    }
+    
+    // 방향 필터 적용
+    if (activeFilters.direction && activeFilters.direction.length > 0) {
+      filteredProperties = filteredProperties.filter(property => 
+        property.direction && activeFilters.direction.includes(property.direction)
+      );
+    }
+    
+    // 필터링된 매물로 목록 업데이트
+    updatePropertyList(filteredProperties);
+    
+    // 지도 마커도 업데이트
+    updateMapMarkers(filteredProperties);
+  }
+  
+  // 지도 마커 업데이트 함수
+  function updateMapMarkers(properties) {
+    // 기존 마커 제거
+    clearMapMarkers();
+    
+    // 필터링된 매물의 마커만 표시
+    properties.forEach(property => {
+      if (property.coordinates) {
+        addMarkerToMap(
+          property.coordinates.lat,
+          property.coordinates.lng,
+          property.title,
+          property.formattedPrice
+        );
+      }
+    });
+  }
+  
+  // 찜 목록 로컬 스토리지 저장/불러오기
+  function saveFavoritesToStorage() {
+    localStorage.setItem('favoriteProperties', JSON.stringify(favoriteProperties));
+  }
+  
+  function loadFavoritesFromStorage() {
+    const saved = localStorage.getItem('favoriteProperties');
+    if (saved) {
+      favoriteProperties = JSON.parse(saved);
+    }
+  }
+  
+  // 찜하기 토글 함수
+  function toggleFavorite(propertyId) {
+    const index = favoriteProperties.indexOf(propertyId);
+    
+    if (index === -1) {
+      // 찜 목록에 추가
+      favoriteProperties.push(propertyId);
+    } else {
+      // 찜 목록에서 제거
+      favoriteProperties.splice(index, 1);
+    }
+    
+    // 로컬 스토리지에 저장
+    saveFavoritesToStorage();
+    
+    // 찜한 매물만 보기 모드인 경우 목록 업데이트
+    if (isShowingFavoritesOnly) {
+      filterAndUpdateProperties();
+    } else {
+      // 찜 버튼 상태만 업데이트
+      updateFavoriteButtonStates();
+    }
+  }
+  
+  // 매물 목록의 찜 버튼 상태 업데이트
+  function updateFavoriteButtonStates() {
+    document.querySelectorAll('.property-card').forEach(card => {
+      const propertyId = card.getAttribute('data-id');
+      const favoriteBtn = card.querySelector('.favorite-btn');
+      
+      if (favoriteBtn) {
+        if (favoriteProperties.includes(propertyId)) {
+          favoriteBtn.classList.add('active');
+          const icon = favoriteBtn.querySelector('i');
+          if (icon) {
+            icon.classList.remove('ri-heart-line');
+            icon.classList.add('ri-heart-fill');
+          }
+        } else {
+          favoriteBtn.classList.remove('active');
+          const icon = favoriteBtn.querySelector('i');
+          if (icon) {
+            icon.classList.remove('ri-heart-fill');
+            icon.classList.add('ri-heart-line');
+          }
+        }
+      }
+    });
   }
   
   // 지도 초기화 확인 및 데이터 로드
@@ -319,6 +641,17 @@ document.addEventListener("DOMContentLoaded", function () {
               showLoading(false);
               
               if (data.properties && data.properties.length > 0) {
+                // 모든 매물 데이터 저장
+                allProperties = data.properties;
+                
+                // 매물에 가상의 방향 속성 추가 (필터링 테스트용)
+                const directions = ['남향', '남동향', '남서향', '동향', '서향', '북향', '북동향', '북서향'];
+                allProperties = allProperties.map(property => {
+                  // 매물 데이터에 임의의 방향 속성 추가
+                  property.direction = directions[Math.floor(Math.random() * directions.length)];
+                  return property;
+                });
+                
                 // 매물 마커 표시
                 data.properties.forEach(property => {
                   addMarkerToMap(
@@ -333,6 +666,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 updatePropertyList(data.properties);
               } else {
                 // 매물이 없는 경우
+                allProperties = [];
                 updatePropertyList([]);
               }
             })
@@ -375,6 +709,9 @@ document.addEventListener("DOMContentLoaded", function () {
           API.loadPropertiesNearby(defaultLat, defaultLng, 2)
             .then(data => {
               if (data.properties && data.properties.length > 0) {
+                // 모든 매물 데이터 저장
+                allProperties = data.properties;
+                
                 // 매물 마커 표시
                 data.properties.forEach(property => {
                   addMarkerToMap(
@@ -389,6 +726,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 updatePropertyList(data.properties);
               } else {
                 // 매물이 없는 경우
+                allProperties = [];
                 updatePropertyList([]);
               }
             });
@@ -409,6 +747,9 @@ document.addEventListener("DOMContentLoaded", function () {
       API.loadPropertiesNearby(defaultLat, defaultLng, 2)
         .then(data => {
           if (data.properties && data.properties.length > 0) {
+            // 모든 매물 데이터 저장
+            allProperties = data.properties;
+            
             // 매물 마커 표시
             data.properties.forEach(property => {
               addMarkerToMap(
@@ -423,6 +764,7 @@ document.addEventListener("DOMContentLoaded", function () {
             updatePropertyList(data.properties);
           } else {
             // 매물이 없는 경우
+            allProperties = [];
             updatePropertyList([]);
           }
         });
@@ -526,16 +868,22 @@ document.addEventListener("DOMContentLoaded", function () {
     // 매물 리스트 생성
     properties.forEach(property => {
       const propertyCard = document.createElement('div');
-      propertyCard.className = 'bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden border border-gray-200';
+      propertyCard.className = 'property-card bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden border border-gray-200';
+      propertyCard.setAttribute('data-id', property.id);
       
       // 이미지 URL 확인
       const imageUrl = property.imageUrl || `https://via.placeholder.com/400x300?text=${encodeURIComponent(property.title || '매물')}`;
       
+      // 찜 버튼 상태 결정
+      const isFavorite = favoriteProperties.includes(property.id);
+      const heartIcon = isFavorite ? 'ri-heart-fill' : 'ri-heart-line';
+      const heartClass = isFavorite ? 'active' : '';
+      
       propertyCard.innerHTML = `
         <div class="relative">
           <img src="${imageUrl}" class="w-full h-48 object-cover" alt="${property.title || '매물'} 이미지">
-          <button class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white/90 rounded-full hover:bg-white">
-            <i class="ri-heart-line text-gray-600 hover:text-red-500"></i>
+          <button class="favorite-btn absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white/90 rounded-full hover:bg-white ${heartClass}">
+            <i class="${heartIcon} text-gray-600 hover:text-red-500"></i>
           </button>
         </div>
         <div class="p-4">
@@ -545,10 +893,20 @@ document.addEventListener("DOMContentLoaded", function () {
             <span class="text-lg font-semibold text-gray-800">${property.formattedPrice || '가격 정보 없음'}</span>
             <span class="text-sm text-gray-500">${property.area || ''}</span>
           </div>
+          ${property.direction ? `<div class="mt-2 text-xs text-gray-500">${property.direction}</div>` : ''}
         </div>
       `;
       
-      // 클릭 이벤트 - 지도에서 해당 매물 위치로 이동
+      // 찜 버튼 클릭 이벤트
+      const favoriteBtn = propertyCard.querySelector('.favorite-btn');
+      if (favoriteBtn) {
+        favoriteBtn.addEventListener('click', function(event) {
+          event.stopPropagation(); // 매물 카드 클릭 이벤트 방지
+          toggleFavorite(property.id);
+        });
+      }
+      
+      // 카드 클릭 이벤트 - 지도에서 해당 매물 위치로 이동
       propertyCard.addEventListener('click', function() {
         if (property.coordinates) {
           // 지도 이동
@@ -589,6 +947,9 @@ document.addEventListener("DOMContentLoaded", function () {
         clearMapMarkers();
         
         if (data.properties && data.properties.length > 0) {
+          // 모든 매물 데이터 저장
+          allProperties = data.properties;
+          
           data.properties.forEach(property => {
             addMarkerToMap(
               property.coordinates.lat, 
@@ -602,6 +963,7 @@ document.addEventListener("DOMContentLoaded", function () {
           updatePropertyList(data.properties);
         } else {
           // 매물이 없는 경우
+          allProperties = [];
           updatePropertyList([]);
         }
       });
@@ -698,7 +1060,7 @@ document.addEventListener("DOMContentLoaded", function () {
           expandButton.querySelector("button").setAttribute("title", "지도 보기");
           expandButton.querySelector("i").setAttribute("aria-label", "지도 보기");
         } else {
-          expandButton.style.right = "50%";
+          expandButton.style.right = "calc(50% - 15px)"; // 간격 조정에 맞게 수정
           const icon = expandButton.querySelector("i");
           if (icon) {
             icon.classList.remove("ri-arrow-right-line");
@@ -710,7 +1072,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // 콘텐츠 및 지도 패널 애니메이션
         requestAnimationFrame(() => {
-          contentPane.style.width = isExpanded ? "100%" : "50%";
+          contentPane.style.width = isExpanded ? "100%" : "calc(50% - 15px)"; // 간격 조정에 맞게 수정
           mapPane.style.transform = isExpanded ? "translateX(100%)" : "translateX(0)";
           mapPane.style.opacity = isExpanded ? "0" : "1";
 
@@ -923,6 +1285,14 @@ document.addEventListener("DOMContentLoaded", function () {
   // 초기화 함수 실행
   init();
 });
+
+function getLastMonth() {
+  const today = new Date();
+  const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const year = lastMonth.getFullYear();
+  const month = String(lastMonth.getMonth() + 1).padStart(2, '0');
+  return { year, month };
+}
 
 function initializeCharts() {
   // 필요한 차트 요소 확인
