@@ -46,15 +46,6 @@
             font-style: normal;
         }
         
-        /* 폰트 로딩 문제로 임시 제거
-        @font-face {
-            font-family: 'KBO DIA GOTHIC';
-            src: url("{{ url_for('static', filename='font/KBO DIA GOTHIC_MEDIUM.OTF') }}") format('opentype');
-            font-weight: normal;
-            font-style: normal;
-        }
-        */
-        
         body {
             font-family: 'Pretendard', sans-serif !important;
         }
@@ -67,53 +58,22 @@
         .login-btn {
             color: #000000 !important;
         }
-    </style>
-    
-    <!-- 카카오 지도 API 로드 - 콜백 방식으로 변경 -->
-    <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=40fb6364d861d0e68d9b3ac4eacd0eb4&autoload=false"></script>
-    <script>
-        // 카카오맵 API 로드 후 초기화 함수
-        function initKakaoMap() {
-            console.log("카카오맵 API 로드 완료, 지도 초기화 시작");
-            
-            // 지도 컨테이너 확인
-            const mapContainer = document.getElementById('kakao-map');
-            if (!mapContainer) {
-                console.error("지도 컨테이너(kakao-map)를 찾을 수 없습니다");
-                return;
-            }
-            
-            console.log("지도 컨테이너 크기:", mapContainer.offsetWidth, "x", mapContainer.offsetHeight);
-            
-            try {
-                // 지도 생성 (단순 옵션만 사용)
-                window.map = new kakao.maps.Map(mapContainer, {
-                    center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심
-                    level: 3 // 확대 레벨
-                });
-                
-                // 지도 영역에서 스크롤 이벤트 처리
-                mapContainer.addEventListener('wheel', function(e) {
-                    e.stopPropagation(); // 스크롤 이벤트 전파 중지
-                });
-                
-                console.log("카카오맵 생성 성공");
-                
-                // 지도 초기화 후 필요한 이벤트 등록 및 매물 데이터 로드
-                if (typeof checkMapAndLoadData === 'function') {
-                    checkMapAndLoadData();
-                }
-            } catch (error) {
-                console.error("지도 초기화 중 오류 발생:", error);
-            }
+
+        /* 지도 로딩 오버레이 */
+        #map-loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
         }
-        
-        // 페이지 로드 후 카카오맵 API 로드
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("문서 로드 완료, 카카오맵 API 로드 중...");
-            kakao.maps.load(initKakaoMap);
-        });
-    </script>
+    </style>
 </head>
 
 <body class="bg-white overflow-hidden">
@@ -300,6 +260,12 @@
             <!-- 카카오맵 -->
             <div id="kakao-map" class="w-full h-full"></div>
             
+            <!-- 지도 로딩 오버레이 -->
+            <div id="map-loading-overlay">
+                <div class="inline-block w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4"></div>
+                <p class="text-lg text-gray-700">지도를 불러오는 중입니다...</p>
+            </div>
+            
             <!-- 지도 컨트롤 버튼 -->
             <div class="map-controls">
                 <button id="my-location-btn" class="map-control-btn" title="내 위치로 이동">
@@ -326,12 +292,123 @@
         </div>
     </div>
 
-    <!-- API 모듈을 먼저 로드한 후 분리된 스크립트 로드 -->
+    <!-- 기본 스크립트 로드 -->
     <script src="{{ url_for('static', filename='js/api.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/maps.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/filter.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/filter.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/maps.js') }}"></script>
     <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+    
+    <!-- 카카오 지도 API 스크립트 로드 - Flask에서 주입된 키 사용 -->
+    <script>
+        // Flask에서 전달받은 카카오맵 API 키
+        const KAKAO_MAP_API_KEY = "{{ kakao_api_key }}";
+        
+        // 전역 변수로 지도 API 로드 상태 관리
+        window.kakaoMapLoaded = false;
+        
+        // 이 함수는 카카오맵 API가 로드된 후 호출됨
+        function kakaoMapCallback() {
+            console.log("카카오맵 API 콜백 호출됨");
+            window.kakaoMapLoaded = true;
+            initKakaoMap();
+        }
+        
+        // 지도 초기화 함수
+        function initKakaoMap() {
+            console.log("지도 초기화 시작");
+            const mapContainer = document.getElementById('kakao-map');
+            const loadingOverlay = document.getElementById('map-loading-overlay');
+            
+            if (!mapContainer) {
+                console.error("지도 컨테이너가 없습니다");
+                return;
+            }
+            
+            try {
+                // 지도 생성
+                window.map = new kakao.maps.Map(mapContainer, {
+                    center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심
+                    level: 3 // 확대 레벨
+                });
+                
+                console.log("지도 생성 성공");
+                
+                // 로딩 오버레이 숨기기
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'none';
+                }
+                
+                // 이벤트 리스너 및 데이터 로드
+                if (typeof checkMapAndLoadData === 'function') {
+                    console.log("checkMapAndLoadData 함수 호출");
+                    checkMapAndLoadData();
+                } else {
+                    console.error("checkMapAndLoadData 함수가 정의되지 않았습니다");
+                }
+            } catch (error) {
+                console.error("지도 초기화 오류:", error);
+                
+                // 로딩 오버레이 에러 메시지로 변경
+                if (loadingOverlay) {
+                    loadingOverlay.innerHTML = `
+                        <div class="text-red-500 text-5xl mb-4"><i class="ri-error-warning-line"></i></div>
+                        <p class="text-lg text-red-700 mb-2">지도를 불러오는데 실패했습니다</p>
+                        <p class="text-sm text-gray-600">오류 메시지: ${error.message}</p>
+                    `;
+                }
+            }
+        }
+        
+        // 페이지 로드 시 실행
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM 로드 완료, 카카오맵 API 로드 시작");
+            
+            // 이미 스크립트가 로드되어 있는지 확인
+            if (window.kakao && window.kakao.maps) {
+                console.log("카카오맵 API가 이미 로드되어 있음");
+                initKakaoMap();
+                return;
+            }
+            
+            // 스크립트 태그 생성
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_MAP_API_KEY}&autoload=false&callback=kakaoMapCallback`;
+            script.async = true;
+            
+            // 오류 처리
+            script.onerror = function() {
+                console.error("카카오맵 API 로드 실패");
+                const loadingOverlay = document.getElementById('map-loading-overlay');
+                if (loadingOverlay) {
+                    loadingOverlay.innerHTML = `
+                        <div class="text-red-500 text-5xl mb-4"><i class="ri-error-warning-line"></i></div>
+                        <p class="text-lg text-red-700">지도 API를 불러오는데 실패했습니다</p>
+                        <p class="text-sm text-gray-600 mt-2">인터넷 연결을 확인하거나 새로고침해 주세요</p>
+                    `;
+                }
+            };
+            
+            // 스크립트 추가
+            document.head.appendChild(script);
+            
+            // 15초 타임아웃 설정 (API 로드 타임아웃)
+            setTimeout(function() {
+                if (!window.kakaoMapLoaded) {
+                    console.error("카카오맵 API 로드 타임아웃");
+                    const loadingOverlay = document.getElementById('map-loading-overlay');
+                    if (loadingOverlay) {
+                        loadingOverlay.innerHTML = `
+                            <div class="text-yellow-500 text-5xl mb-4"><i class="ri-time-line"></i></div>
+                            <p class="text-lg text-yellow-700">지도 로딩 시간이 너무 오래 걸립니다</p>
+                            <p class="text-sm text-gray-600 mt-2">페이지를 새로고침해 주세요</p>
+                        `;
+                    }
+                }
+            }, 15000);
+        });
+    </script>
 </body>
 
 </html>

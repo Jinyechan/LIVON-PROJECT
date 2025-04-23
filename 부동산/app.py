@@ -6,14 +6,29 @@ from datetime import datetime
 import json
 import os
 import math
+import logging
+from dotenv import load_dotenv
+
+# 환경 변수 로드
+load_dotenv()
+
+# API 키 가져오기 (환경 변수 없으면 기본값 사용)
+KAKAO_MAP_API_KEY = os.getenv('KAKAO_MAP_API_KEY', '40fb6364d861d0e68d9b3ac4eacd0eb4')
+
+# 로깅 설정
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
 # 정적 파일 경로 설정 확인
 app.static_folder = 'static'
 
+# 디버그 모드 설정 (개발 환경에서만 True로 설정)
+app.debug = os.getenv('FLASK_ENV') == 'development'
+
 # 공공데이터포털 API 키
-REALTRADING_API_KEY = 'S/1Gqx+pk+3dioHedGdoVI2fg3tdrEFyHYX6fhHWP0ZGmHdlJSidYxf22GwfHvuB6nW0ycYF4P8fIgNJR3EPEg=='
+REALTRADING_API_KEY = os.getenv('REALTRADING_API_KEY', 'S/1Gqx+pk+3dioHedGdoVI2fg3tdrEFyHYX6fhHWP0ZGmHdlJSidYxf22GwfHvuB6nW0ycYF4P8fIgNJR3EPEg==')
 REALTRADING_ENDPOINT = 'https://apis.data.go.kr/1613000/RTMSDataSvcAptTrade'
 
 # 지역코드 매핑 (일부 지역 예시)
@@ -33,16 +48,25 @@ REGION_CODE_MAP = {
 # 메인 라우트 - 리브온 부동산 첫 페이지
 @app.route('/')
 def index():
-    return render_template('index.html')
+    logger.info("메인 페이지 요청")
+    return render_template('index.html', kakao_api_key=KAKAO_MAP_API_KEY)
+
+# 디버깅용 카카오맵 테스트 페이지
+@app.route('/debug-kakao')
+def debug_kakao():
+    logger.info("카카오맵 디버깅 페이지 요청")
+    return render_template('debug_kakao.html', kakao_api_key=KAKAO_MAP_API_KEY)
 
 # 특정 정적 파일 직접 제공 (디버깅용)
 @app.route('/static/<path:filename>')
 def custom_static(filename):
+    logger.debug(f"정적 파일 요청: {filename}")
     return send_from_directory(app.static_folder, filename)
 
 # 부동산 데이터 API
 @app.route('/api/property-data')
 def property_data():
+    logger.info("부동산 데이터 API 요청")
     # 실제 구현에서는 DB에서 데이터를 가져오거나 다른 API를 호출할 수 있음
     # 지금은 샘플 데이터 반환
     return jsonify({
@@ -60,6 +84,8 @@ def properties_in_bounds():
         ne_lat = float(request.args.get('neLat', 37.7))
         ne_lng = float(request.args.get('neLng', 127.1))
         
+        logger.info(f"영역 내 부동산 조회 API 요청: SW({sw_lat}, {sw_lng}), NE({ne_lat}, {ne_lng})")
+        
         # 주어진 영역 내의 매물 가져오기
         properties = get_sample_properties(sw_lat, sw_lng, ne_lat, ne_lng)
         
@@ -68,7 +94,7 @@ def properties_in_bounds():
             'properties': properties
         })
     except Exception as e:
-        app.logger.error(f"영역 내 매물 조회 실패: {str(e)}")
+        logger.error(f"영역 내 매물 조회 실패: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'message': f"오류가 발생했습니다: {str(e)}",
@@ -82,6 +108,8 @@ def properties_nearby():
         lat = float(request.args.get('lat', 37.5665))
         lng = float(request.args.get('lng', 126.9780))
         radius = float(request.args.get('radius', 2))
+        
+        logger.info(f"주변 부동산 조회 API 요청: 중심점({lat}, {lng}), 반경 {radius}km")
         
         # 반경을 위도/경도 범위로 변환
         lat_delta = radius / 111  # 위도 1도는 약 111km
@@ -100,7 +128,7 @@ def properties_nearby():
             'properties': properties
         })
     except Exception as e:
-        app.logger.error(f"주변 매물 조회 실패: {str(e)}")
+        logger.error(f"주변 매물 조회 실패: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'message': f"오류가 발생했습니다: {str(e)}",
@@ -111,6 +139,7 @@ def properties_nearby():
 @app.route('/api/search')
 def search():
     query = request.args.get('q', '')
+    logger.info(f"위치 검색 API 요청: 검색어 '{query}'")
     
     if not query or len(query) < 2:
         return jsonify({
@@ -137,6 +166,7 @@ def search():
 @app.route('/api/geocode')
 def geocode():
     location = request.args.get('location', '')
+    logger.info(f"지오코딩 API 요청: 위치 '{location}'")
     
     if not location:
         return jsonify({
@@ -161,6 +191,7 @@ def geocode():
 @app.route('/api/weather')
 def weather():
     city = request.args.get('city', 'seoul')
+    logger.info(f"날씨 데이터 API 요청: 도시 '{city}'")
     
     # 실제 구현에서는 외부 날씨 API를 호출
     # 여기서는 샘플 데이터 반환
@@ -182,6 +213,7 @@ def weather():
 @app.route('/api/news')
 def news():
     category = request.args.get('category')
+    logger.info(f"뉴스 데이터 API 요청: 카테고리 '{category}'")
     
     # 실제 구현에서는 외부 뉴스 API를 호출
     # 여기서는 샘플 데이터 반환
@@ -221,6 +253,7 @@ def news():
 @app.route('/api/crime-data')
 def crime_data():
     region = request.args.get('region')
+    logger.info(f"범죄 데이터 API 요청: 지역 '{region}'")
     
     # 실제 구현에서는 외부 API 또는 DB에서 데이터 조회
     # 여기서는 샘플 데이터 반환
@@ -247,6 +280,8 @@ def realtrading():
     region_code = get_region_code(region_name)
     year_month = request.args.get('yearMonth', get_last_month())
     
+    logger.info(f"아파트 실거래가 API 요청: 지역 '{region_name}', 코드 '{region_code}', 년월 '{year_month}'")
+    
     try:
         data = fetch_apartment_trade_data(region_code, year_month)
         if not data:
@@ -261,7 +296,7 @@ def realtrading():
             'data': data
         })
     except Exception as e:
-        app.logger.error(f"실거래가 데이터 조회 실패: {str(e)}")
+        logger.error(f"실거래가 데이터 조회 실패: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'message': str(e),
@@ -313,7 +348,7 @@ def fetch_apartment_trade_data(lawd_cd, deal_ymd):
         trade_data = parse_xml(response.text)
         return trade_data
     except Exception as e:
-        app.logger.error(f"데이터 가져오기 실패: {str(e)}")
+        logger.error(f"데이터 가져오기 실패: {str(e)}", exc_info=True)
         return None
 
 # XML 응답을 파싱하는 함수
@@ -357,7 +392,7 @@ def parse_xml(xml_string):
         
         return trade_data
     except Exception as e:
-        app.logger.error(f"XML 파싱 실패: {str(e)}")
+        logger.error(f"XML 파싱 실패: {str(e)}", exc_info=True)
         raise e
 
 # 샘플 매물 데이터 생성 함수 (API 실패시 사용)
@@ -436,5 +471,128 @@ def get_sample_properties(sw_lat=None, sw_lng=None, ne_lat=None, ne_lng=None, ce
     
     return properties
 
+# 디버깅용 HTML 페이지 템플릿 생성
+def create_debug_template():
+    debug_template = """
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>카카오맵 디버깅</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+            #map { width: 100%; height: 500px; margin-bottom: 20px; }
+            .controls { margin-bottom: 20px; }
+            .log { background: #f5f5f5; padding: 10px; border-radius: 5px; height: 200px; overflow-y: auto; }
+            .log p { margin: 0; padding: 2px 0; font-family: monospace; }
+            button { padding: 8px 15px; margin-right: 10px; }
+        </style>
+    </head>
+    <body>
+        <h1>카카오맵 API 디버깅</h1>
+        <div class="controls">
+            <button onclick="checkKakaoAPI()">카카오 API 상태 확인</button>
+            <button onclick="initMap()">지도 초기화</button>
+            <button onclick="toggleZoom()">줌 변경</button>
+        </div>
+        <div id="map"></div>
+        <h3>로그:</h3>
+        <div class="log" id="log"></div>
+        
+        <script>
+            // Flask에서 주입한 API 키 사용
+            const KAKAO_API_KEY = "{{ kakao_api_key }}";
+            
+            function log(message) {
+                const logElement = document.getElementById('log');
+                const entry = document.createElement('p');
+                entry.textContent = new Date().toLocaleTimeString() + ': ' + message;
+                logElement.prepend(entry);
+            }
+            
+            function checkKakaoAPI() {
+                log('카카오 API 상태 확인 중...');
+                if (window.kakao) {
+                    log('✓ 카카오 API 로드됨');
+                    log('version: ' + kakao.maps.version);
+                } else {
+                    log('✗ 카카오 API가 로드되지 않음');
+                    loadKakaoAPI();
+                }
+            }
+            
+            function loadKakaoAPI() {
+                log('카카오 API 로드 시도...');
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + KAKAO_API_KEY + '&autoload=false';
+                script.onload = function() {
+                    log('카카오 스크립트 로드 완료, API 로드 중...');
+                    kakao.maps.load(function() {
+                        log('✓ 카카오 API 로드 성공');
+                    });
+                };
+                script.onerror = function() {
+                    log('✗ 카카오 스크립트 로드 실패');
+                };
+                document.head.appendChild(script);
+            }
+            
+            function initMap() {
+                log('지도 초기화 시도...');
+                if (!window.kakao || !window.kakao.maps) {
+                    log('✗ 카카오 API가 로드되지 않아 지도를 초기화할 수 없습니다');
+                    return;
+                }
+                
+                try {
+                    const mapContainer = document.getElementById('map');
+                    window.map = new kakao.maps.Map(mapContainer, {
+                        center: new kakao.maps.LatLng(37.5665, 126.9780),
+                        level: 3
+                    });
+                    log('✓ 지도 초기화 성공');
+                } catch (error) {
+                    log('✗ 지도 초기화 실패: ' + error.message);
+                }
+            }
+            
+            function toggleZoom() {
+                if (!window.map) {
+                    log('✗ 지도가 초기화되지 않았습니다');
+                    return;
+                }
+                
+                const currentLevel = window.map.getLevel();
+                log('현재 줌 레벨: ' + currentLevel);
+                window.map.setLevel(currentLevel === 3 ? 7 : 3);
+                log('줌 레벨 변경: ' + window.map.getLevel());
+            }
+            
+            // 페이지 로드시 자동 실행
+            window.onload = function() {
+                log('페이지 로드됨');
+                checkKakaoAPI();
+            };
+        </script>
+    </body>
+    </html>
+    """
+    
+    # templates 디렉토리가 없으면 생성
+    if not os.path.exists('templates'):
+        os.makedirs('templates')
+    
+    # 디버깅 템플릿 파일 저장
+    with open('templates/debug_kakao.html', 'w', encoding='utf-8') as f:
+        f.write(debug_template)
+    
+    logger.info("디버깅 템플릿 파일 생성됨: templates/debug_kakao.html")
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    # 디버깅 템플릿 생성
+    create_debug_template()
+    
+    # Flask 애플리케이션 실행
+    app.run(debug=True, host='0.0.0.0', port=5000)
