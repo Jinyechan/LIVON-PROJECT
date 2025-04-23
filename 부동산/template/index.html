@@ -137,7 +137,7 @@
                     updateZoomLevelIndicator();
                     
                     // 드래그 핸들 이벤트 설정
-                    setupDragHandle();
+                    // setupDragHandle(); // 드래그 핸들 기능 제거
                 }, 1000);
                 
                 // 확대 레벨 표시기 업데이트 함수
@@ -166,66 +166,7 @@
                 
                 // 드래그 핸들 설정
                 function setupDragHandle() {
-                    const dragHandle = document.getElementById('map-drag-handle');
-                    let isDragging = false;
-                    let startX, startY;
-                    let initialCenter;
-                    
-                    if (!dragHandle) return;
-                    
-                    // 마우스 누를 때
-                    dragHandle.addEventListener('mousedown', function(e) {
-                        isDragging = true;
-                        startX = e.clientX;
-                        startY = e.clientY;
-                        initialCenter = window.map.getCenter();
-                        
-                        // 커서 변경
-                        dragHandle.style.cursor = 'grabbing';
-                        
-                        // 텍스트 선택 방지
-                        e.preventDefault();
-                    });
-                    
-                    // 마우스 이동 시
-                    document.addEventListener('mousemove', function(e) {
-                        if (!isDragging) return;
-                        
-                        // 이동 거리 계산
-                        const dx = e.clientX - startX;
-                        const dy = e.clientY - startY;
-                        
-                        // 지도 이동 (이동 거리에 반비례하게 이동)
-                        const level = window.map.getLevel();
-                        const moveDistance = Math.pow(1.5, level); // 레벨에 따른 이동 속도 조정
-                        
-                        const latLng = window.map.getCenter();
-                        const newLatLng = new kakao.maps.LatLng(
-                            latLng.getLat() + (dy / moveDistance),
-                            latLng.getLng() - (dx / moveDistance)
-                        );
-                        
-                        window.map.setCenter(newLatLng);
-                        
-                        // 시작 위치 업데이트
-                        startX = e.clientX;
-                        startY = e.clientY;
-                    });
-                    
-                    // 마우스 뗄 때
-                    document.addEventListener('mouseup', function() {
-                        if (isDragging) {
-                            isDragging = false;
-                            dragHandle.style.cursor = 'grab';
-                        }
-                    });
-                    
-                    // 핸들에서 마우스가 벗어날 때
-                    dragHandle.addEventListener('mouseleave', function() {
-                        if (!isDragging) {
-                            dragHandle.style.cursor = 'grab';
-                        }
-                    });
+                    // 드래그 핸들 기능 제거
                 }
                 
                 console.log("카카오맵 생성 성공");
@@ -425,15 +366,13 @@
                 <i class="ri-drag-move-fill"></i>
             </div>
             
-            <!-- 지도 컨트롤 버튼 (우측 상단으로 이동) -->
+            <!-- 지도 컨트롤 버튼 -->
             <div class="map-controls">
-                <button id="my-location-btn" class="map-control-btn expandable-control-btn" title="내 위치로 이동">
+                <button id="my-location-btn" class="map-control-btn" title="내 위치로 이동">
                     <i class="ri-map-pin-user-fill text-blue-500 text-lg"></i>
-                    <span class="btn-text">내 위치</span>
                 </button>
-                <button id="crime-area-btn" class="map-control-btn expandable-control-btn" title="범죄 지역 조회">
+                <button id="crime-area-btn" class="map-control-btn" title="범죄 지역 조회">
                     <i class="ri-alarm-warning-fill text-red-500 text-lg"></i>
-                    <span class="btn-text">주변 범죄 조회</span>
                 </button>
                 <button id="zoom-in-btn" class="map-control-btn" title="확대">
                     <i class="ri-zoom-in-line text-gray-700 text-lg"></i>

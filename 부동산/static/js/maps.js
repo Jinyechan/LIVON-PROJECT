@@ -57,15 +57,13 @@ function initMapEventListeners() {
       e.stopPropagation();
     }, { passive: false });
     
-    // 마우스 눌렀을 때 이벤트 - 길게 누르기 감지
+    // 지도 클릭 시 이동 처리 (길게 누르기)
     mapContainer.addEventListener('mousedown', function(e) {
       // 좌클릭일 때만 처리
       if (e.button === 0) {
         isPressing = true;
-        const startX = e.clientX;
-        const startY = e.clientY;
         
-        // 0.5초 이상 길게 누르면 내 위치 이동 모드로 전환
+        // 0.5초 이상 길게 누르면 해당 위치로 이동
         pressTimer = setTimeout(() => {
           if (isPressing) {
             navigateToCoordinates(e.clientX, e.clientY);
@@ -85,6 +83,9 @@ function initMapEventListeners() {
       isPressing = false;
       clearTimeout(pressTimer);
     });
+    
+    // 확대/축소 슬라이더 이벤트 설정
+    setupZoomSlider();
   }
   
   // 지도 영역 확대/축소 완료 이벤트
@@ -134,6 +135,62 @@ function initMapEventListeners() {
   });
 }
 
+// 확대/축소 슬라이더 설정
+function setupZoomSlider() {
+  const zoomBar = document.querySelector('.zoom-level-bar');
+  const zoomIndicator = document.getElementById('zoom-level-indicator');
+  
+  if (!zoomBar || !zoomIndicator) return;
+  
+  // 슬라이더 클릭 시 바로 확대/축소 적용
+  zoomBar.addEventListener('click', function(e) {
+    const rect = this.getBoundingClientRect();
+    const clickY = e.clientY - rect.top;
+    const percentage = (clickY / rect.height) * 100;
+    
+    // 백분율을 레벨로 변환 (역순: 상단이 레벨 14, 하단이 레벨 1)
+    const maxLevel = 14;
+    const minLevel = 1;
+    const level = Math.round(maxLevel - ((percentage / 100) * (maxLevel - minLevel)));
+    
+    // 지도 레벨 설정
+    map.setLevel(level);
+  });
+  
+  // 인디케이터 드래그 처리
+  let isDraggingIndicator = false;
+  
+  zoomIndicator.addEventListener('mousedown', function(e) {
+    isDraggingIndicator = true;
+    e.stopPropagation(); // 슬라이더 클릭 이벤트와 충돌 방지
+  });
+  
+  document.addEventListener('mousemove', function(e) {
+    if (!isDraggingIndicator) return;
+    
+    const rect = zoomBar.getBoundingClientRect();
+    let moveY = e.clientY - rect.top;
+    
+    // 범위 제한
+    moveY = Math.max(0, Math.min(rect.height, moveY));
+    
+    // 백분율 계산
+    const percentage = (moveY / rect.height) * 100;
+    
+    // 백분율을 레벨로 변환 (역순)
+    const maxLevel = 14;
+    const minLevel = 1;
+    const level = Math.round(maxLevel - ((percentage / 100) * (maxLevel - minLevel)));
+    
+    // 지도 레벨 설정
+    map.setLevel(level);
+  });
+  
+  document.addEventListener('mouseup', function() {
+    isDraggingIndicator = false;
+  });
+}
+
 // 확대 레벨 표시기 업데이트 함수
 function updateZoomLevelIndicator(level) {
   const indicator = document.getElementById('zoom-level-indicator');
@@ -141,8 +198,9 @@ function updateZoomLevelIndicator(level) {
   
   if (indicator && text) {
     // 레벨 1(최대 확대)에서 14(최대 축소) 사이의 위치 계산
+    // 역순으로 변경 (이제 상단이 x1, 하단이 x14)
     const maxLevel = 14;
-    const percentage = ((level - 1) / (maxLevel - 1)) * 100;
+    const percentage = ((maxLevel - level) / (maxLevel - 1)) * 100;
     
     // 인디케이터 위치 설정 (상단 0%, 하단 100%)
     indicator.style.top = `${percentage}%`;

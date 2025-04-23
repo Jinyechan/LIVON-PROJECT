@@ -554,7 +554,7 @@ input:checked + .slider:before {
   transform: translateY(1px);
 }
 
-/* 확대 레벨 그래프 */
+/* 확대 레벨 그래프 - 클릭 가능 */
 .zoom-level-container {
   position: absolute;
   top: 250px;
@@ -574,6 +574,7 @@ input:checked + .slider:before {
   border-radius: 2px;
   margin: 0 auto;
   position: relative;
+  cursor: pointer;
 }
 
 .zoom-level-indicator {
@@ -586,6 +587,11 @@ input:checked + .slider:before {
   border-radius: 50%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   transition: top 0.3s ease;
+  cursor: grab;
+}
+
+.zoom-level-indicator:active {
+  cursor: grabbing;
 }
 
 .zoom-level-text {
@@ -596,29 +602,15 @@ input:checked + .slider:before {
   color: #4b5563;
 }
 
-/* 확장 버튼 호버 효과 */
+/* 확장 버튼 호버 효과 - 제거 */
 .expandable-control-btn {
   width: 40px;
-  transition: width 0.3s ease-in-out;
-  overflow: hidden;
-  white-space: nowrap;
 }
 
-.expandable-control-btn:hover {
-  width: 120px;
-}
-
-.expandable-control-btn .btn-text {
-  opacity: 0;
-  margin-left: 8px;
-  transition: opacity 0.3s ease-in-out;
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.expandable-control-btn:hover .btn-text {
-  opacity: 1;
+/* 콘텐츠 패널과 지도 사이 구분선 효과 */
+#content-pane {
+  box-shadow: 5px 0 10px -5px rgba(0, 0, 0, 0.1);
+  z-index: 11;
 }
 
 /* 드래그 핸들 스타일 */
