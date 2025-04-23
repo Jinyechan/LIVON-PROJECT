@@ -94,20 +94,20 @@ button:active {
   background: #9ca3af;
 }
 
-/* 매핑 패널 트랜지션 - 간격 조정 (30px) 및 지도 확장 (120px) */
+/* 매핑 패널 트랜지션 - 구분선 제거 및 지도 확장 */
 #map-pane {
   transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out, width 0.3s ease-in-out;
   z-index: 10; /* 지도 패널이 다른 요소보다 위에 있게 함 */
   display: block !important; /* 지도 패널이 항상 보이도록 함 */
-  width: calc(50% + 75px) !important; /* 지도 패널의 너비를 120px 더 넓게 조정 */
-  margin-left: -75px; /* 지도 패널을 왼쪽으로 확장 */
+  width: 50% !important; /* 지도 패널의 너비를 정확히 50%로 설정 */
+  margin-left: 0; /* 여백 제거 */
 }
 
 #content-pane {
   transition: width 0.3s ease-in-out;
-  width: calc(50% - 75px) !important; /* 콘텐츠 패널의 너비를 줄여서 지도 확장 공간 확보 */
-  padding-right: 15px; /* 오른쪽 여백 추가 */
-  background-color: #f9f9f9; /* 아주 밝은 회색 배경색 추가 */
+  width: 50% !important; /* 콘텐츠 패널의 너비를 정확히 50%로 설정 */
+  padding-right: 0; /* 오른쪽 여백 제거 */
+  background-color: #f9f9f9; /* 아주 밝은 회색 배경색 */
 }
 
 /* 검색 및 필터 영역 고정 스타일 - 수정됨 */
@@ -125,7 +125,7 @@ button:active {
 
 #expand-button {
   transition: right 0.3s ease-in-out;
-  right: calc(50% - 75px) !important; /* 확장 버튼 위치 조정 */
+  right: 50% !important; /* 확장 버튼 위치 조정 */
 }
 
 /* 숫자 입력 화살표 제거 */
@@ -516,16 +516,110 @@ input:checked + .slider:before {
   color: #1f2937;
 }
 
-/* 구분선 스타일 - 추가됨 */
+/* 구분선 스타일 - 제거됨 */
 .divider-line {
+  display: none;
+}
+
+/* 새로운 지도 컨트롤 스타일 */
+.map-controls {
   position: absolute;
-  left: calc(50% - 75px);
-  top: 72px;
-  height: calc(100vh - 72px);
-  width: 6px;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.map-control-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.map-control-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.map-control-btn:active {
+  transform: translateY(1px);
+}
+
+/* 확대 레벨 그래프 */
+.zoom-level-container {
+  position: absolute;
+  top: 250px;
+  right: 20px;
+  background-color: white;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  width: 40px;
+}
+
+.zoom-level-bar {
+  width: 4px;
+  height: 150px;
+  background-color: #e5e7eb;
+  border-radius: 2px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.zoom-level-indicator {
+  position: absolute;
+  left: -8px;
+  width: 20px;
+  height: 20px;
   background-color: #e8e4d9;
-  z-index: 30;
-  border-radius: 3px;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: top 0.3s ease;
+}
+
+.zoom-level-text {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #4b5563;
+}
+
+/* 드래그 핸들 스타일 */
+.drag-handle {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background-color: white;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  cursor: grab;
+  z-index: 10;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-handle i {
+  font-size: 20px;
+  color: #4b5563;
 }
 
 /* 모바일 반응형 스타일 */

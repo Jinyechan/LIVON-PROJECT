@@ -124,13 +124,109 @@
                     // 확대 버튼
                     document.getElementById('zoom-in-btn').addEventListener('click', function() {
                         window.map.setLevel(window.map.getLevel() - 1);
+                        updateZoomLevelIndicator();
                     });
                     
                     // 축소 버튼
                     document.getElementById('zoom-out-btn').addEventListener('click', function() {
                         window.map.setLevel(window.map.getLevel() + 1);
+                        updateZoomLevelIndicator();
                     });
+                    
+                    // 초기 확대 레벨 표시
+                    updateZoomLevelIndicator();
+                    
+                    // 드래그 핸들 이벤트 설정
+                    setupDragHandle();
                 }, 1000);
+                
+                // 확대 레벨 표시기 업데이트 함수
+                function updateZoomLevelIndicator() {
+                    const level = window.map.getLevel();
+                    const indicator = document.getElementById('zoom-level-indicator');
+                    const text = document.getElementById('zoom-level-text');
+                    
+                    if (indicator && text) {
+                        // 레벨 1(최대 확대)에서 14(최대 축소) 사이의 위치 계산
+                        const maxLevel = 14;
+                        const percentage = ((level - 1) / (maxLevel - 1)) * 100;
+                        
+                        // 인디케이터 위치 설정 (상단 0%, 하단 100%)
+                        indicator.style.top = `${percentage}%`;
+                        
+                        // 텍스트 업데이트
+                        text.textContent = `Lv.${level}`;
+                    }
+                }
+                
+                // 지도 레벨 변경 이벤트 리스너 추가
+                kakao.maps.event.addListener(window.map, 'zoom_changed', function() {
+                    updateZoomLevelIndicator();
+                });
+                
+                // 드래그 핸들 설정
+                function setupDragHandle() {
+                    const dragHandle = document.getElementById('map-drag-handle');
+                    let isDragging = false;
+                    let startX, startY;
+                    let initialCenter;
+                    
+                    if (!dragHandle) return;
+                    
+                    // 마우스 누를 때
+                    dragHandle.addEventListener('mousedown', function(e) {
+                        isDragging = true;
+                        startX = e.clientX;
+                        startY = e.clientY;
+                        initialCenter = window.map.getCenter();
+                        
+                        // 커서 변경
+                        dragHandle.style.cursor = 'grabbing';
+                        
+                        // 텍스트 선택 방지
+                        e.preventDefault();
+                    });
+                    
+                    // 마우스 이동 시
+                    document.addEventListener('mousemove', function(e) {
+                        if (!isDragging) return;
+                        
+                        // 이동 거리 계산
+                        const dx = e.clientX - startX;
+                        const dy = e.clientY - startY;
+                        
+                        // 지도 이동 (이동 거리에 반비례하게 이동)
+                        const level = window.map.getLevel();
+                        const moveDistance = Math.pow(1.5, level); // 레벨에 따른 이동 속도 조정
+                        
+                        const latLng = window.map.getCenter();
+                        const newLatLng = new kakao.maps.LatLng(
+                            latLng.getLat() + (dy / moveDistance),
+                            latLng.getLng() - (dx / moveDistance)
+                        );
+                        
+                        window.map.setCenter(newLatLng);
+                        
+                        // 시작 위치 업데이트
+                        startX = e.clientX;
+                        startY = e.clientY;
+                    });
+                    
+                    // 마우스 뗄 때
+                    document.addEventListener('mouseup', function() {
+                        if (isDragging) {
+                            isDragging = false;
+                            dragHandle.style.cursor = 'grab';
+                        }
+                    });
+                    
+                    // 핸들에서 마우스가 벗어날 때
+                    dragHandle.addEventListener('mouseleave', function() {
+                        if (!isDragging) {
+                            dragHandle.style.cursor = 'grab';
+                        }
+                    });
+                }
                 
                 console.log("카카오맵 생성 성공");
             } catch (error) {
@@ -319,34 +415,45 @@
             </div>
         </div>
         
-        <!-- 구분선 추가 -->
-        <div class="divider-line w-1 h-full bg-primary/30 z-20"></div>
-        
         <div id="map-pane"
             class="w-[50%] bg-gray-50 h-[calc(100vh-70px)] fixed right-0 top-[70px] transition-all duration-300 ease-in-out">
-            <!-- 카카오맵으로 대체 -->
+            <!-- 카카오맵 -->
             <div id="kakao-map" class="w-full h-full"></div>
-            <!-- 지도 위에 표시될 정보 패널 -->
-            <div class="absolute inset-0 p-4 pointer-events-none">
-                <div class="bg-white/90 rounded-lg shadow-md p-4 mb-4 pointer-events-auto max-w-xs">
+            
+            <!-- 드래그 핸들 추가 -->
+            <div id="map-drag-handle" class="drag-handle">
+                <i class="ri-drag-move-fill"></i>
+            </div>
+            
+            <!-- 지도 컨트롤 버튼 (우측 상단으로 이동) -->
+            <div class="map-controls">
+                <button id="my-location-btn" class="map-control-btn" title="내 위치로 이동">
+                    <i class="ri-map-pin-user-fill text-blue-500 text-lg"></i>
+                </button>
+                <button id="crime-area-btn" class="map-control-btn" title="범죄 지역 조회">
+                    <i class="ri-alarm-warning-fill text-red-500 text-lg"></i>
+                </button>
+                <button id="zoom-in-btn" class="map-control-btn" title="확대">
+                    <i class="ri-zoom-in-line text-gray-700 text-lg"></i>
+                </button>
+                <button id="zoom-out-btn" class="map-control-btn" title="축소">
+                    <i class="ri-zoom-out-line text-gray-700 text-lg"></i>
+                </button>
+            </div>
+            
+            <!-- 확대 레벨 그래프 -->
+            <div class="zoom-level-container">
+                <div class="zoom-level-bar">
+                    <div id="zoom-level-indicator" class="zoom-level-indicator"></div>
+                </div>
+                <div id="zoom-level-text" class="zoom-level-text">Lv.3</div>
+            </div>
+            
+            <!-- 지도 정보 패널 -->
+            <div class="absolute top-4 left-20 pointer-events-none">
+                <div class="bg-white/90 rounded-lg shadow-md p-4 pointer-events-auto max-w-xs">
                     <h3 class="text-lg font-semibold text-gray-800 mb-2">매물 지도</h3>
                     <p class="text-gray-600">현재 위치 내의 매물을 표시합니다</p>
-                </div>
-                
-                <!-- 지도 컨트롤 버튼 -->
-                <div class="absolute top-4 right-4 flex flex-col gap-2 pointer-events-auto">
-                    <button id="my-location-btn" class="w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-gray-100 transition-colors" title="내 위치로 이동">
-                        <i class="ri-map-pin-user-fill text-blue-500 text-lg"></i>
-                    </button>
-                    <button id="crime-area-btn" class="w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-gray-100 transition-colors" title="범죄 지역 조회">
-                        <i class="ri-alarm-warning-fill text-red-500 text-lg"></i>
-                    </button>
-                    <button id="zoom-in-btn" class="w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-gray-100 transition-colors" title="확대">
-                        <i class="ri-zoom-in-line text-gray-700 text-lg"></i>
-                    </button>
-                    <button id="zoom-out-btn" class="w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-gray-100 transition-colors" title="축소">
-                        <i class="ri-zoom-out-line text-gray-700 text-lg"></i>
-                    </button>
                 </div>
             </div>
         </div>

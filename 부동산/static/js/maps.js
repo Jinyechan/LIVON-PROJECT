@@ -7,6 +7,9 @@ let lastSearchCenter = null; // 마지막 검색 중심점
 let lastSearchLevel = 0; // 마지막 검색 시 지도 레벨
 let isMapMoving = false; // 지도 이동 중인지 여부
 let lastProperties = []; // 마지막으로 가져온 매물 목록
+let isDragging = false; // 드래그 모드 상태
+let isPressing = false; // 마우스 누르고 있는 상태
+let pressTimer = null; // 길게 누르기 타이머
 
 // 지도 초기화 확인 및 데이터 로드
 function checkMapAndLoadData() {
@@ -31,7 +34,7 @@ function checkMapAndLoadData() {
 function initMapEventListeners() {
   if (!map) return;
   
-  // 지도 영역 클릭 시 이벤트 버블링 방지
+  // 지도 영역 찾기
   const mapContainer = document.getElementById('kakao-map');
   if (mapContainer) {
     // 지도 영역에서 스크롤 이벤트 처리 개선
@@ -53,6 +56,35 @@ function initMapEventListeners() {
     mapContainer.addEventListener('touchmove', function(e) {
       e.stopPropagation();
     }, { passive: false });
+    
+    // 마우스 눌렀을 때 이벤트 - 길게 누르기 감지
+    mapContainer.addEventListener('mousedown', function(e) {
+      // 좌클릭일 때만 처리
+      if (e.button === 0) {
+        isPressing = true;
+        const startX = e.clientX;
+        const startY = e.clientY;
+        
+        // 0.5초 이상 길게 누르면 내 위치 이동 모드로 전환
+        pressTimer = setTimeout(() => {
+          if (isPressing) {
+            navigateToCoordinates(e.clientX, e.clientY);
+          }
+        }, 500);
+      }
+    });
+    
+    // 마우스 뗐을 때 이벤트
+    mapContainer.addEventListener('mouseup', function() {
+      isPressing = false;
+      clearTimeout(pressTimer);
+    });
+    
+    // 마우스가 지도 밖으로 나갔을 때
+    mapContainer.addEventListener('mouseleave', function() {
+      isPressing = false;
+      clearTimeout(pressTimer);
+    });
   }
   
   // 지도 영역 확대/축소 완료 이벤트
@@ -62,6 +94,9 @@ function initMapEventListeners() {
     
     // 확대 레벨을 lastSearchLevel에 저장
     lastSearchLevel = level;
+    
+    // 확대 레벨 표시 업데이트
+    updateZoomLevelIndicator(level);
   });
   
   // 지도 이동 시작 이벤트
@@ -97,6 +132,80 @@ function initMapEventListeners() {
       loadPropertiesNearLocation(center.getLat(), center.getLng(), radiusKm);
     }
   });
+}
+
+// 확대 레벨 표시기 업데이트 함수
+function updateZoomLevelIndicator(level) {
+  const indicator = document.getElementById('zoom-level-indicator');
+  const text = document.getElementById('zoom-level-text');
+  
+  if (indicator && text) {
+    // 레벨 1(최대 확대)에서 14(최대 축소) 사이의 위치 계산
+    const maxLevel = 14;
+    const percentage = ((level - 1) / (maxLevel - 1)) * 100;
+    
+    // 인디케이터 위치 설정 (상단 0%, 하단 100%)
+    indicator.style.top = `${percentage}%`;
+    
+    // 텍스트 업데이트
+    text.textContent = `Lv.${level}`;
+  }
+}
+
+// 좌표 위치로 네비게이션 (클릭 위치 기준)
+function navigateToCoordinates(clientX, clientY) {
+  if (!map) return;
+  
+  const mapContainer = document.getElementById('kakao-map');
+  if (!mapContainer) return;
+  
+  // 클릭 위치의 화면 좌표를 상대적 위치로 변환
+  const rect = mapContainer.getBoundingClientRect();
+  const relativeX = clientX - rect.left;
+  const relativeY = clientY - rect.top;
+  
+  // 화면 좌표를 지도 좌표로 변환
+  const projection = map.getProjection();
+  const position = projection.containerPointToCoordinate(new kakao.maps.Point(relativeX, relativeY));
+  
+  // 새 위치로 이동
+  map.setCenter(position);
+  
+  // 효과음 (진동 효과가 있으면 좋겠지만 웹에서는 제한적)
+  if ('vibrate' in navigator) {
+    navigator.vibrate(50); // 50ms 진동
+  }
+  
+  // 시각적 피드백
+  showPositionFeedback(clientX, clientY);
+}
+
+// 위치 이동 시 시각적 피드백
+function showPositionFeedback(x, y) {
+  // 임시 요소 생성
+  const feedback = document.createElement('div');
+  feedback.style.position = 'fixed';
+  feedback.style.left = `${x - 25}px`;
+  feedback.style.top = `${y - 25}px`;
+  feedback.style.width = '50px';
+  feedback.style.height = '50px';
+  feedback.style.borderRadius = '50%';
+  feedback.style.backgroundColor = 'rgba(0, 123, 255, 0.3)';
+  feedback.style.transform = 'scale(0)';
+  feedback.style.transition = 'transform 0.3s ease-out';
+  feedback.style.zIndex = '9999';
+  document.body.appendChild(feedback);
+  
+  // 애니메이션 효과
+  setTimeout(() => {
+    feedback.style.transform = 'scale(1)';
+    setTimeout(() => {
+      feedback.style.transform = 'scale(0)';
+      setTimeout(() => {
+        document.body.removeChild(feedback);
+      }, 300);
+    }, 300);
+  }, 10);
 }
 
 // 지도 확대 레벨에 따른 반경 계산 (km)
@@ -234,6 +343,7 @@ function moveMapToLocation(lat, lng, zoom) {
   if (zoom) {
     map.setLevel(zoom);
     lastSearchLevel = zoom; // 줌 레벨 저장
+    updateZoomLevelIndicator(zoom); // 줌 레벨 표시 업데이트
   }
 }
 
@@ -426,7 +536,6 @@ function initExpandButton() {
   const contentPane = document.getElementById("content-pane");
   const mapPane = document.getElementById("map-pane");
   const expandButton = document.getElementById("expand-button");
-  const dividerLine = document.querySelector('.divider-line');
 
   if (contentPane && mapPane && expandButton) {
     let isExpanded = false;
@@ -444,11 +553,8 @@ function initExpandButton() {
         }
         expandButton.querySelector("button").setAttribute("title", "지도 보기");
         expandButton.querySelector("i").setAttribute("aria-label", "지도 보기");
-        
-        // 구분선 숨기기
-        if (dividerLine) dividerLine.style.display = "none";
       } else {
-        expandButton.style.right = "calc(50% - 15px)"; // 간격 조정에 맞게 수정
+        expandButton.style.right = "50%"; // 간격 조정에 맞게 수정
         const icon = expandButton.querySelector("i");
         if (icon) {
           icon.classList.remove("ri-arrow-right-line");
@@ -456,14 +562,11 @@ function initExpandButton() {
         }
         expandButton.querySelector("button").setAttribute("title", "전체화면 보기");
         expandButton.querySelector("i").setAttribute("aria-label", "전체화면 보기");
-        
-        // 구분선 표시
-        if (dividerLine) dividerLine.style.display = "block";
       }
 
       // 콘텐츠 및 지도 패널 애니메이션
       requestAnimationFrame(() => {
-        contentPane.style.width = isExpanded ? "100%" : "calc(50% - 15px)"; // 간격 조정에 맞게 수정
+        contentPane.style.width = isExpanded ? "100%" : "50%"; // 간격 조정에 맞게 수정
         mapPane.style.transform = isExpanded ? "translateX(100%)" : "translateX(0)";
         mapPane.style.opacity = isExpanded ? "0" : "1";
 
