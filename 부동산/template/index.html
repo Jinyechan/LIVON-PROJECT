@@ -89,7 +89,8 @@
                 const options = {
                     center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심
                     level: 3, // 확대 레벨
-                    scrollwheel: true // 스크롤 휠로 확대/축소 가능하도록 설정
+                    scrollwheel: true, // 스크롤 휠로 확대/축소 가능하도록 설정
+                    draggable: true // 드래그로 지도 이동 가능하도록 설정
                 };
                 
                 // 지도 생성
@@ -99,6 +100,37 @@
                 mapContainer.addEventListener('wheel', function(e) {
                     e.stopPropagation(); // 스크롤 이벤트 전파 중지
                 });
+                
+                // 지도 컨트롤 버튼 이벤트 처리
+                setTimeout(() => {
+                    // 내 위치로 이동 버튼
+                    document.getElementById('my-location-btn').addEventListener('click', function() {
+                        if (navigator.geolocation) {
+                            navigator.geolocation.getCurrentPosition(function(position) {
+                                const lat = position.coords.latitude;
+                                const lng = position.coords.longitude;
+                                const locPosition = new kakao.maps.LatLng(lat, lng);
+                                window.map.setCenter(locPosition);
+                            });
+                        }
+                    });
+                    
+                    // 범죄 지역 조회 버튼
+                    document.getElementById('crime-area-btn').addEventListener('click', function() {
+                        // 범죄 지역 데이터 표시 로직
+                        alert('범죄 지역 조회 기능은 준비 중입니다.');
+                    });
+                    
+                    // 확대 버튼
+                    document.getElementById('zoom-in-btn').addEventListener('click', function() {
+                        window.map.setLevel(window.map.getLevel() - 1);
+                    });
+                    
+                    // 축소 버튼
+                    document.getElementById('zoom-out-btn').addEventListener('click', function() {
+                        window.map.setLevel(window.map.getLevel() + 1);
+                    });
+                }, 1000);
                 
                 console.log("카카오맵 생성 성공");
             } catch (error) {
@@ -112,7 +144,7 @@
     <!-- 헤더 -->
     <header class="fixed top-0 left-0 right-0 bg-white shadow-sm z-50">
         <div class="w-full px-4 py-4 flex items-center justify-between">
-            <a href="#" class="flex items-center ml-12">
+            <a href="#" class="flex items-center ml-4">
                 <img src="../static/image/LIVON 로고 배경제거.png" alt="리브온 부동산" class="h-10">
             </a>
             <nav class="flex items-center justify-center space-x-8">
@@ -122,8 +154,6 @@
                     class="nav-item text-black hover:text-black transition-all duration-300 px-4 py-2">뉴스</button>
                 <button data-section="weather"
                     class="nav-item text-black hover:text-black transition-all duration-300 px-4 py-2">날씨</button>
-                <button data-section="crime-map"
-                    class="nav-item text-black hover:text-black transition-all duration-300 px-4 py-2">범죄발생지역</button>
             </nav>
             <button
                 class="login-btn text-black px-6 py-2 rounded-button font-medium whitespace-nowrap hover:text-primary transition-colors mr-12">
@@ -301,6 +331,22 @@
                 <div class="bg-white/90 rounded-lg shadow-md p-4 mb-4 pointer-events-auto max-w-xs">
                     <h3 class="text-lg font-semibold text-gray-800 mb-2">매물 지도</h3>
                     <p class="text-gray-600">현재 위치 내의 매물을 표시합니다</p>
+                </div>
+                
+                <!-- 지도 컨트롤 버튼 -->
+                <div class="absolute top-4 right-4 flex flex-col gap-2 pointer-events-auto">
+                    <button id="my-location-btn" class="w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-gray-100 transition-colors" title="내 위치로 이동">
+                        <i class="ri-map-pin-user-fill text-blue-500 text-lg"></i>
+                    </button>
+                    <button id="crime-area-btn" class="w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-gray-100 transition-colors" title="범죄 지역 조회">
+                        <i class="ri-alarm-warning-fill text-red-500 text-lg"></i>
+                    </button>
+                    <button id="zoom-in-btn" class="w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-gray-100 transition-colors" title="확대">
+                        <i class="ri-zoom-in-line text-gray-700 text-lg"></i>
+                    </button>
+                    <button id="zoom-out-btn" class="w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-gray-100 transition-colors" title="축소">
+                        <i class="ri-zoom-out-line text-gray-700 text-lg"></i>
+                    </button>
                 </div>
             </div>
         </div>
