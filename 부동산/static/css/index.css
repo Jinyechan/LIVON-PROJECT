@@ -554,53 +554,9 @@ input:checked + .slider:before {
   transform: translateY(1px);
 }
 
-/* 확대 레벨 그래프 - 클릭 가능 */
-.zoom-level-container {
-  position: absolute;
-  top: 250px;
-  right: 20px;
-  background-color: white;
-  border-radius: 8px;
-  padding: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 10;
-  width: 40px;
-}
+/* 확대 레벨 그래프 - 삭제됨 */
 
-.zoom-level-bar {
-  width: 4px;
-  height: 150px;
-  background-color: #e5e7eb;
-  border-radius: 2px;
-  margin: 0 auto;
-  position: relative;
-  cursor: pointer;
-}
-
-.zoom-level-indicator {
-  position: absolute;
-  left: -8px;
-  width: 20px;
-  height: 20px;
-  background-color: #e8e4d9;
-  border: 3px solid white;
-  border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  transition: top 0.3s ease;
-  cursor: grab;
-}
-
-.zoom-level-indicator:active {
-  cursor: grabbing;
-}
-
-.zoom-level-text {
-  text-align: center;
-  margin-top: 10px;
-  font-size: 12px;
-  font-weight: bold;
-  color: #4b5563;
-}
+/* 확대/축소 레벨 텍스트 - 삭제됨 */
 
 /* 확장 버튼 호버 효과 - 제거 */
 .expandable-control-btn {

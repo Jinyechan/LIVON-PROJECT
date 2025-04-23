@@ -124,49 +124,17 @@
                     // 확대 버튼
                     document.getElementById('zoom-in-btn').addEventListener('click', function() {
                         window.map.setLevel(window.map.getLevel() - 1);
-                        updateZoomLevelIndicator();
                     });
                     
                     // 축소 버튼
                     document.getElementById('zoom-out-btn').addEventListener('click', function() {
                         window.map.setLevel(window.map.getLevel() + 1);
-                        updateZoomLevelIndicator();
                     });
-                    
-                    // 초기 확대 레벨 표시
-                    updateZoomLevelIndicator();
-                    
-                    // 드래그 핸들 이벤트 설정
-                    // setupDragHandle(); // 드래그 핸들 기능 제거
                 }, 1000);
                 
-                // 확대 레벨 표시기 업데이트 함수
-                function updateZoomLevelIndicator() {
-                    const level = window.map.getLevel();
-                    const indicator = document.getElementById('zoom-level-indicator');
-                    const text = document.getElementById('zoom-level-text');
-                    
-                    if (indicator && text) {
-                        // 레벨 1(최대 확대)에서 14(최대 축소) 사이의 위치 계산
-                        const maxLevel = 14;
-                        const percentage = ((level - 1) / (maxLevel - 1)) * 100;
-                        
-                        // 인디케이터 위치 설정 (상단 0%, 하단 100%)
-                        indicator.style.top = `${percentage}%`;
-                        
-                        // 텍스트 업데이트
-                        text.textContent = `Lv.${level}`;
-                    }
-                }
-                
-                // 지도 레벨 변경 이벤트 리스너 추가
-                kakao.maps.event.addListener(window.map, 'zoom_changed', function() {
-                    updateZoomLevelIndicator();
-                });
-                
-                // 드래그 핸들 설정
-                function setupDragHandle() {
-                    // 드래그 핸들 기능 제거
+                // 업데이트 함수 제거됨
+                function updateZoomLevelIndicator(level) {
+                    // 삭제됨
                 }
                 
                 console.log("카카오맵 생성 성공");
@@ -361,11 +329,6 @@
             <!-- 카카오맵 -->
             <div id="kakao-map" class="w-full h-full"></div>
             
-            <!-- 드래그 핸들 추가 -->
-            <div id="map-drag-handle" class="drag-handle">
-                <i class="ri-drag-move-fill"></i>
-            </div>
-            
             <!-- 지도 컨트롤 버튼 -->
             <div class="map-controls">
                 <button id="my-location-btn" class="map-control-btn" title="내 위치로 이동">
@@ -380,14 +343,6 @@
                 <button id="zoom-out-btn" class="map-control-btn" title="축소">
                     <i class="ri-zoom-out-line text-gray-700 text-lg"></i>
                 </button>
-            </div>
-            
-            <!-- 확대 레벨 그래프 -->
-            <div class="zoom-level-container">
-                <div class="zoom-level-bar">
-                    <div id="zoom-level-indicator" class="zoom-level-indicator"></div>
-                </div>
-                <div id="zoom-level-text" class="zoom-level-text">x12</div>
             </div>
             
             <!-- 지도 정보 패널 -->

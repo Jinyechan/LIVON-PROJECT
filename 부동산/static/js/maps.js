@@ -56,36 +56,6 @@ function initMapEventListeners() {
     mapContainer.addEventListener('touchmove', function(e) {
       e.stopPropagation();
     }, { passive: false });
-    
-    // 지도 클릭 시 이동 처리 (길게 누르기)
-    mapContainer.addEventListener('mousedown', function(e) {
-      // 좌클릭일 때만 처리
-      if (e.button === 0) {
-        isPressing = true;
-        
-        // 0.5초 이상 길게 누르면 해당 위치로 이동
-        pressTimer = setTimeout(() => {
-          if (isPressing) {
-            navigateToCoordinates(e.clientX, e.clientY);
-          }
-        }, 500);
-      }
-    });
-    
-    // 마우스 뗐을 때 이벤트
-    mapContainer.addEventListener('mouseup', function() {
-      isPressing = false;
-      clearTimeout(pressTimer);
-    });
-    
-    // 마우스가 지도 밖으로 나갔을 때
-    mapContainer.addEventListener('mouseleave', function() {
-      isPressing = false;
-      clearTimeout(pressTimer);
-    });
-    
-    // 확대/축소 슬라이더 이벤트 설정
-    setupZoomSlider();
   }
   
   // 지도 영역 확대/축소 완료 이벤트
@@ -95,9 +65,6 @@ function initMapEventListeners() {
     
     // 확대 레벨을 lastSearchLevel에 저장
     lastSearchLevel = level;
-    
-    // 확대 레벨 표시 업데이트
-    updateZoomLevelIndicator(level);
   });
   
   // 지도 이동 시작 이벤트
