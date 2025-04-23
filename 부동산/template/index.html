@@ -96,6 +96,9 @@
                 // 지도 생성
                 window.map = new kakao.maps.Map(mapContainer, options);
                 
+                // 지도가 생성된 후 커서 스타일 설정
+                mapContainer.style.cursor = 'grab';
+                
                 // 지도 영역에서 스크롤 이벤트 처리
                 mapContainer.addEventListener('wheel', function(e) {
                     e.stopPropagation(); // 스크롤 이벤트 전파 중지

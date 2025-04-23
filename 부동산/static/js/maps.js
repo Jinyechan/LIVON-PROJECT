@@ -7,9 +7,6 @@ let lastSearchCenter = null; // 마지막 검색 중심점
 let lastSearchLevel = 0; // 마지막 검색 시 지도 레벨
 let isMapMoving = false; // 지도 이동 중인지 여부
 let lastProperties = []; // 마지막으로 가져온 매물 목록
-let isDragging = false; // 드래그 모드 상태
-let isPressing = false; // 마우스 누르고 있는 상태
-let pressTimer = null; // 길게 누르기 타이머
 
 // 지도 초기화 확인 및 데이터 로드
 function checkMapAndLoadData() {
@@ -20,6 +17,9 @@ function checkMapAndLoadData() {
     
     // 지도 이벤트 리스너 등록
     initMapEventListeners();
+    
+    // 드래그 기능 확실히 활성화
+    map.setDraggable(true);
     
     // 현재 위치 기반 매물 로드
     loadPropertiesNearCurrentLocation();
@@ -70,11 +70,15 @@ function initMapEventListeners() {
   // 지도 이동 시작 이벤트
   kakao.maps.event.addListener(map, 'dragstart', function() {
     isMapMoving = true;
+    // 마우스 커서 변경
+    mapContainer.style.cursor = 'grabbing';
   });
   
   // 지도 이동 종료 이벤트 - 새 영역 내 매물 로드
   kakao.maps.event.addListener(map, 'dragend', function() {
     isMapMoving = false;
+    // 마우스 커서 원래대로
+    mapContainer.style.cursor = 'grab';
     
     // 현재 지도 중심
     const center = map.getCenter();
@@ -100,139 +104,6 @@ function initMapEventListeners() {
       loadPropertiesNearLocation(center.getLat(), center.getLng(), radiusKm);
     }
   });
-}
-
-// 확대/축소 슬라이더 설정
-function setupZoomSlider() {
-  const zoomBar = document.querySelector('.zoom-level-bar');
-  const zoomIndicator = document.getElementById('zoom-level-indicator');
-  
-  if (!zoomBar || !zoomIndicator) return;
-  
-  // 슬라이더 클릭 시 바로 확대/축소 적용
-  zoomBar.addEventListener('click', function(e) {
-    const rect = this.getBoundingClientRect();
-    const clickY = e.clientY - rect.top;
-    const percentage = (clickY / rect.height) * 100;
-    
-    // 백분율을 레벨로 변환 (역순: 상단이 레벨 14, 하단이 레벨 1)
-    const maxLevel = 14;
-    const minLevel = 1;
-    const level = Math.round(maxLevel - ((percentage / 100) * (maxLevel - minLevel)));
-    
-    // 지도 레벨 설정
-    map.setLevel(level);
-  });
-  
-  // 인디케이터 드래그 처리
-  let isDraggingIndicator = false;
-  
-  zoomIndicator.addEventListener('mousedown', function(e) {
-    isDraggingIndicator = true;
-    e.stopPropagation(); // 슬라이더 클릭 이벤트와 충돌 방지
-  });
-  
-  document.addEventListener('mousemove', function(e) {
-    if (!isDraggingIndicator) return;
-    
-    const rect = zoomBar.getBoundingClientRect();
-    let moveY = e.clientY - rect.top;
-    
-    // 범위 제한
-    moveY = Math.max(0, Math.min(rect.height, moveY));
-    
-    // 백분율 계산
-    const percentage = (moveY / rect.height) * 100;
-    
-    // 백분율을 레벨로 변환 (역순)
-    const maxLevel = 14;
-    const minLevel = 1;
-    const level = Math.round(maxLevel - ((percentage / 100) * (maxLevel - minLevel)));
-    
-    // 지도 레벨 설정
-    map.setLevel(level);
-  });
-  
-  document.addEventListener('mouseup', function() {
-    isDraggingIndicator = false;
-  });
-}
-
-// 확대 레벨 표시기 업데이트 함수
-function updateZoomLevelIndicator(level) {
-  const indicator = document.getElementById('zoom-level-indicator');
-  const text = document.getElementById('zoom-level-text');
-  
-  if (indicator && text) {
-    // 레벨 1(최대 확대)에서 14(최대 축소) 사이의 위치 계산
-    // 역순으로 변경 (이제 상단이 x1, 하단이 x14)
-    const maxLevel = 14;
-    const percentage = ((maxLevel - level) / (maxLevel - 1)) * 100;
-    
-    // 인디케이터 위치 설정 (상단 0%, 하단 100%)
-    indicator.style.top = `${percentage}%`;
-    
-    // 텍스트 업데이트 (배수 형식으로 변경)
-    // 레벨 1이 최대 확대 (x14), 레벨 14가 최소 확대 (x1)
-    const zoomMultiplier = Math.round((15 - level));
-    text.textContent = `x${zoomMultiplier}`;
-  }
-}
-
-// 좌표 위치로 네비게이션 (클릭 위치 기준)
-function navigateToCoordinates(clientX, clientY) {
-  if (!map) return;
-  
-  const mapContainer = document.getElementById('kakao-map');
-  if (!mapContainer) return;
-  
-  // 클릭 위치의 화면 좌표를 상대적 위치로 변환
-  const rect = mapContainer.getBoundingClientRect();
-  const relativeX = clientX - rect.left;
-  const relativeY = clientY - rect.top;
-  
-  // 화면 좌표를 지도 좌표로 변환
-  const projection = map.getProjection();
-  const position = projection.containerPointToCoordinate(new kakao.maps.Point(relativeX, relativeY));
-  
-  // 새 위치로 이동
-  map.setCenter(position);
-  
-  // 효과음 (진동 효과가 있으면 좋겠지만 웹에서는 제한적)
-  if ('vibrate' in navigator) {
-    navigator.vibrate(50); // 50ms 진동
-  }
-  
-  // 시각적 피드백
-  showPositionFeedback(clientX, clientY);
-}
-
-// 위치 이동 시 시각적 피드백
-function showPositionFeedback(x, y) {
-  // 임시 요소 생성
-  const feedback = document.createElement('div');
-  feedback.style.position = 'fixed';
-  feedback.style.left = `${x - 25}px`;
-  feedback.style.top = `${y - 25}px`;
-  feedback.style.width = '50px';
-  feedback.style.height = '50px';
-  feedback.style.borderRadius = '50%';
-  feedback.style.backgroundColor = 'rgba(0, 123, 255, 0.3)';
-  feedback.style.transform = 'scale(0)';
-  feedback.style.transition = 'transform 0.3s ease-out';
-  feedback.style.zIndex = '9999';
-  document.body.appendChild(feedback);
-  
-  // 애니메이션 효과
-  setTimeout(() => {
-    feedback.style.transform = 'scale(1)';
-    setTimeout(() => {
-      feedback.style.transform = 'scale(0)';
-      setTimeout(() => {
-        document.body.removeChild(feedback);
-      }, 300);
-    }, 300);
-  }, 10);
 }
 
 // 지도 확대 레벨에 따른 반경 계산 (km)
@@ -370,7 +241,6 @@ function moveMapToLocation(lat, lng, zoom) {
   if (zoom) {
     map.setLevel(zoom);
     lastSearchLevel = zoom; // 줌 레벨 저장
-    updateZoomLevelIndicator(zoom); // 줌 레벨 표시 업데이트
   }
 }
 
@@ -581,7 +451,7 @@ function initExpandButton() {
         expandButton.querySelector("button").setAttribute("title", "지도 보기");
         expandButton.querySelector("i").setAttribute("aria-label", "지도 보기");
       } else {
-        expandButton.style.right = "50%"; // 간격 조정에 맞게 수정
+        expandButton.style.right = "60%"; // 간격 조정에 맞게 수정
         const icon = expandButton.querySelector("i");
         if (icon) {
           icon.classList.remove("ri-arrow-right-line");
@@ -593,7 +463,7 @@ function initExpandButton() {
 
       // 콘텐츠 및 지도 패널 애니메이션
       requestAnimationFrame(() => {
-        contentPane.style.width = isExpanded ? "100%" : "50%"; // 간격 조정에 맞게 수정
+        contentPane.style.width = isExpanded ? "100%" : "40%"; // 40:60 비율 유지
         mapPane.style.transform = isExpanded ? "translateX(100%)" : "translateX(0)";
         mapPane.style.opacity = isExpanded ? "0" : "1";
 
