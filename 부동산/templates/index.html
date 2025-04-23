@@ -46,19 +46,21 @@
             font-style: normal;
         }
         
+        /* 폰트 로딩 문제로 임시 제거
         @font-face {
             font-family: 'KBO DIA GOTHIC';
             src: url("../static/font/KBO DIA GOTHIC_MEDIUM.OTF") format('opentype');
             font-weight: normal;
             font-style: normal;
         }
+        */
         
         body {
             font-family: 'Pretendard', sans-serif !important;
         }
         
         .nav-item, .filter-item {
-            font-family: 'KBO DIA GOTHIC', sans-serif !important;
+            font-family: 'Noto Sans KR', sans-serif !important;
             color: #000000 !important;
         }
         
@@ -85,55 +87,16 @@
             console.log("지도 컨테이너 크기:", mapContainer.offsetWidth, "x", mapContainer.offsetHeight);
             
             try {
-                // 지도 옵션 설정 - 스크롤 휠 확대/축소 활성화
-                const options = {
+                // 지도 생성 (단순 옵션만 사용)
+                window.map = new kakao.maps.Map(mapContainer, {
                     center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심
-                    level: 3, // 확대 레벨
-                    scrollwheel: true, // 스크롤 휠로 확대/축소 가능하도록 설정
-                    draggable: true // 드래그로 지도 이동 가능하도록 설정
-                };
-                
-                // 지도 생성
-                window.map = new kakao.maps.Map(mapContainer, options);
-                
-                // 지도가 생성된 후 커서 스타일 설정
-                mapContainer.style.cursor = 'grab';
+                    level: 3 // 확대 레벨
+                });
                 
                 // 지도 영역에서 스크롤 이벤트 처리
                 mapContainer.addEventListener('wheel', function(e) {
                     e.stopPropagation(); // 스크롤 이벤트 전파 중지
                 });
-                
-                // 지도 컨트롤 버튼 이벤트 처리
-                setTimeout(() => {
-                    // 내 위치로 이동 버튼
-                    document.getElementById('my-location-btn').addEventListener('click', function() {
-                        if (navigator.geolocation) {
-                            navigator.geolocation.getCurrentPosition(function(position) {
-                                const lat = position.coords.latitude;
-                                const lng = position.coords.longitude;
-                                const locPosition = new kakao.maps.LatLng(lat, lng);
-                                window.map.setCenter(locPosition);
-                            });
-                        }
-                    });
-                    
-                    // 범죄 지역 조회 버튼
-                    document.getElementById('crime-area-btn').addEventListener('click', function() {
-                        // 범죄 지역 데이터 표시 로직
-                        alert('범죄 지역 조회 기능은 준비 중입니다.');
-                    });
-                    
-                    // 확대 버튼
-                    document.getElementById('zoom-in-btn').addEventListener('click', function() {
-                        window.map.setLevel(window.map.getLevel() - 1);
-                    });
-                    
-                    // 축소 버튼
-                    document.getElementById('zoom-out-btn').addEventListener('click', function() {
-                        window.map.setLevel(window.map.getLevel() + 1);
-                    });
-                }, 1000);
                 
                 // 업데이트 함수 제거됨
                 function updateZoomLevelIndicator(level) {
