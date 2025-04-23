@@ -10,8 +10,10 @@ let lastProperties = []; // 마지막으로 가져온 매물 목록
 
 // 지도 초기화 확인 및 데이터 로드
 function checkMapAndLoadData() {
+  console.log("지도 객체 확인 및 데이터 로드 함수 실행");
+  
   // 지도 객체가 이미 window.map으로 생성되어 있는지 확인
-  if (window.map) {
+  if (window.map && window.kakao) {
     console.log("지도 객체 발견, 데이터 로드 시작");
     map = window.map;
     
@@ -32,7 +34,10 @@ function checkMapAndLoadData() {
 
 // 지도 이벤트 리스너 초기화
 function initMapEventListeners() {
-  if (!map) return;
+  if (!map || !window.kakao) {
+    console.error("카카오맵 API가 로드되지 않았거나 지도 객체가 없습니다.");
+    return;
+  }
   
   // 지도 영역 찾기
   const mapContainer = document.getElementById('kakao-map');
@@ -71,14 +76,18 @@ function initMapEventListeners() {
   kakao.maps.event.addListener(map, 'dragstart', function() {
     isMapMoving = true;
     // 마우스 커서 변경
-    mapContainer.style.cursor = 'grabbing';
+    if (mapContainer) {
+      mapContainer.style.cursor = 'grabbing';
+    }
   });
   
   // 지도 이동 종료 이벤트 - 새 영역 내 매물 로드
   kakao.maps.event.addListener(map, 'dragend', function() {
     isMapMoving = false;
     // 마우스 커서 원래대로
-    mapContainer.style.cursor = 'grab';
+    if (mapContainer) {
+      mapContainer.style.cursor = 'grab';
+    }
     
     // 현재 지도 중심
     const center = map.getCenter();
@@ -104,6 +113,45 @@ function initMapEventListeners() {
       loadPropertiesNearLocation(center.getLat(), center.getLng(), radiusKm);
     }
   });
+  
+  // 지도 컨트롤 버튼 이벤트 설정
+  setupMapControlButtons();
+}
+
+// 지도 컨트롤 버튼 설정
+function setupMapControlButtons() {
+  // 확대 버튼
+  const zoomInBtn = document.getElementById('zoom-in-btn');
+  if (zoomInBtn) {
+    zoomInBtn.addEventListener('click', function() {
+      map.setLevel(Math.max(1, map.getLevel() - 1));
+    });
+  }
+  
+  // 축소 버튼
+  const zoomOutBtn = document.getElementById('zoom-out-btn');
+  if (zoomOutBtn) {
+    zoomOutBtn.addEventListener('click', function() {
+      map.setLevel(Math.min(14, map.getLevel() + 1));
+    });
+  }
+  
+  // 내 위치 버튼
+  const myLocationBtn = document.getElementById('my-location-btn');
+  if (myLocationBtn) {
+    myLocationBtn.addEventListener('click', function() {
+      loadPropertiesNearCurrentLocation();
+    });
+  }
+  
+  // 범죄 지역 조회 버튼
+  const crimeAreaBtn = document.getElementById('crime-area-btn');
+  if (crimeAreaBtn) {
+    crimeAreaBtn.addEventListener('click', function() {
+      // 범죄 지역 데이터 로드 및 표시
+      alert('범죄 지역 데이터 준비 중입니다.');
+    });
+  }
 }
 
 // 지도 확대 레벨에 따른 반경 계산 (km)
@@ -177,8 +225,8 @@ function deg2rad(deg) {
 
 // 지도에 마커 추가하는 함수
 function addMarkerToMap(lat, lng, title, price) {
-  if (!map) {
-    console.error("지도가 초기화되지 않았습니다. 마커를 추가할 수 없습니다.");
+  if (!map || !window.kakao) {
+    console.error("카카오맵 API가 로드되지 않았거나 지도 객체가 없습니다. 마커를 추가할 수 없습니다.");
     return;
   }
 
@@ -229,8 +277,8 @@ function clearMapMarkers() {
 
 // 지도 특정 위치로 이동시키는 함수
 function moveMapToLocation(lat, lng, zoom) {
-  if (!map) {
-    console.error("지도가 초기화되지 않았습니다. 위치를 이동할 수 없습니다.");
+  if (!map || !window.kakao) {
+    console.error("카카오맵 API가 로드되지 않았거나 지도 객체가 없습니다. 위치를 이동할 수 없습니다.");
     return;
   }
 
@@ -246,7 +294,7 @@ function moveMapToLocation(lat, lng, zoom) {
 
 // 내 위치 마커 추가
 function addMyLocationMarker(lat, lng) {
-  if (!map) return;
+  if (!map || !window.kakao) return;
   
   // 기존 내 위치 마커 제거
   if (window.myLocationMarker) {
@@ -279,7 +327,9 @@ function loadPropertiesNearCurrentLocation() {
   console.log("현재 위치 기반 매물 로드 시작");
   
   // 로딩 표시 추가
-  showLoading(true);
+  if (typeof showLoading === 'function') {
+    showLoading(true);
+  }
   
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
@@ -290,25 +340,34 @@ function loadPropertiesNearCurrentLocation() {
         console.log("현재 위치:", lat, lng);
         
         // 마지막 검색 중심점 저장
-        lastSearchCenter = new kakao.maps.LatLng(lat, lng);
-        lastSearchLevel = 3; // 초기 확대 레벨
-        
-        // 지도 이동
-        moveMapToLocation(lat, lng, lastSearchLevel);
-        
-        // 현재 위치에 마커 추가
-        addMyLocationMarker(lat, lng);
-        
-        // 주변 매물 로드 (반경은 확대 레벨에 따라 결정)
-        const initialRadius = calculateRadiusByLevel(lastSearchLevel);
-        loadPropertiesNearLocation(lat, lng, initialRadius);
+        if (window.kakao) {
+          lastSearchCenter = new kakao.maps.LatLng(lat, lng);
+          lastSearchLevel = 3; // 초기 확대 레벨
+          
+          // 지도 이동
+          moveMapToLocation(lat, lng, lastSearchLevel);
+          
+          // 현재 위치에 마커 추가
+          addMyLocationMarker(lat, lng);
+          
+          // 주변 매물 로드 (반경은 확대 레벨에 따라 결정)
+          const initialRadius = calculateRadiusByLevel(lastSearchLevel);
+          loadPropertiesNearLocation(lat, lng, initialRadius);
+        } else {
+          console.error("카카오맵 API가 로드되지 않았습니다.");
+          if (typeof showLoading === 'function') {
+            showLoading(false);
+          }
+        }
       },
       // 위치 조회 실패 시
       function(error) {
         console.error("위치 정보를 가져오는데 실패했습니다:", error);
         
         // 로딩 표시 제거
-        showLoading(false);
+        if (typeof showLoading === 'function') {
+          showLoading(false);
+        }
         
         // 실패 메시지와 함께 서울 중심으로 설정
         alert("위치 정보를 가져오는데 실패했습니다. 기본 위치(서울시청)를 사용합니다.");
@@ -317,20 +376,26 @@ function loadPropertiesNearCurrentLocation() {
         const defaultLng = 126.9780;
         
         // 마지막 검색 중심점 저장
-        lastSearchCenter = new kakao.maps.LatLng(defaultLat, defaultLng);
-        lastSearchLevel = 5; // 초기 확대 레벨
-        
-        // 지도 이동
-        moveMapToLocation(defaultLat, defaultLng, lastSearchLevel);
-        
-        // 주변 매물 로드 (반경은 확대 레벨에 따라 결정)
-        const initialRadius = calculateRadiusByLevel(lastSearchLevel);
-        loadPropertiesNearLocation(defaultLat, defaultLng, initialRadius);
+        if (window.kakao) {
+          lastSearchCenter = new kakao.maps.LatLng(defaultLat, defaultLng);
+          lastSearchLevel = 5; // 초기 확대 레벨
+          
+          // 지도 이동
+          moveMapToLocation(defaultLat, defaultLng, lastSearchLevel);
+          
+          // 주변 매물 로드 (반경은 확대 레벨에 따라 결정)
+          const initialRadius = calculateRadiusByLevel(lastSearchLevel);
+          loadPropertiesNearLocation(defaultLat, defaultLng, initialRadius);
+        } else {
+          console.error("카카오맵 API가 로드되지 않았습니다.");
+        }
       }
     );
   } else {
     console.error("이 브라우저에서는 위치 정보를 지원하지 않습니다.");
-    showLoading(false);
+    if (typeof showLoading === 'function') {
+      showLoading(false);
+    }
     
     alert("이 브라우저에서는 위치 정보를 지원하지 않습니다. 기본 위치를 사용합니다.");
     
@@ -339,78 +404,99 @@ function loadPropertiesNearCurrentLocation() {
     const defaultLng = 126.9780;
     
     // 마지막 검색 중심점 저장
-    lastSearchCenter = new kakao.maps.LatLng(defaultLat, defaultLng);
-    lastSearchLevel = 5; // 초기 확대 레벨
-    
-    moveMapToLocation(defaultLat, defaultLng, lastSearchLevel);
-    
-    // 주변 매물 로드 (반경은 확대 레벨에 따라 결정)
-    const initialRadius = calculateRadiusByLevel(lastSearchLevel);
-    loadPropertiesNearLocation(defaultLat, defaultLng, initialRadius);
+    if (window.kakao) {
+      lastSearchCenter = new kakao.maps.LatLng(defaultLat, defaultLng);
+      lastSearchLevel = 5; // 초기 확대 레벨
+      
+      moveMapToLocation(defaultLat, defaultLng, lastSearchLevel);
+      
+      // 주변 매물 로드 (반경은 확대 레벨에 따라 결정)
+      const initialRadius = calculateRadiusByLevel(lastSearchLevel);
+      loadPropertiesNearLocation(defaultLat, defaultLng, initialRadius);
+    } else {
+      console.error("카카오맵 API가 로드되지 않았습니다.");
+    }
   }
 }
 
 // 특정 위치 주변 매물 로드 함수
 function loadPropertiesNearLocation(lat, lng, radiusKm) {
   // 로딩 표시
-  showLoading(true);
+  if (typeof showLoading === 'function') {
+    showLoading(true);
+  }
   
   // API 호출
-  API.loadPropertiesNearby(lat, lng, radiusKm)
-    .then(data => {
-      console.log("주변 매물 로드 결과:", data);
-      
-      // 로딩 표시 제거
+  if (typeof API !== 'undefined' && API.loadPropertiesNearby) {
+    API.loadPropertiesNearby(lat, lng, radiusKm)
+      .then(data => {
+        console.log("주변 매물 로드 결과:", data);
+        
+        // 로딩 표시 제거
+        if (typeof showLoading === 'function') {
+          showLoading(false);
+        }
+        
+        if (data.properties && data.properties.length > 0) {
+          // 모든 매물 데이터 저장
+          window.allProperties = data.properties;
+          lastProperties = data.properties;
+          
+          // 매물에 가상의 방향 속성 추가 (필터링 테스트용)
+          const directions = ['남향', '남동향', '남서향', '동향', '서향', '북향', '북동향', '북서향'];
+          window.allProperties = window.allProperties.map(property => {
+            // 매물 데이터에 임의의 방향 속성 추가
+            property.direction = directions[Math.floor(Math.random() * directions.length)];
+            return property;
+          });
+          
+          // 매물 마커 표시
+          clearMapMarkers();
+          data.properties.forEach(property => {
+            addMarkerToMap(
+              property.coordinates.lat,
+              property.coordinates.lng,
+              property.title,
+              property.formattedPrice
+            );
+          });
+          
+          // 매물 목록 업데이트
+          if (typeof updatePropertyList === 'function') {
+            updatePropertyList(data.properties);
+          }
+        } else {
+          // 매물이 없는 경우
+          window.allProperties = [];
+          lastProperties = [];
+          if (typeof updatePropertyList === 'function') {
+            updatePropertyList([]);
+          }
+        }
+      })
+      .catch(error => {
+        console.error("주변 매물 로드 실패:", error);
+        if (typeof showLoading === 'function') {
+          showLoading(false);
+        }
+        
+        // 오류 메시지 표시
+        const propertyListContainer = document.querySelector('.grid.grid-cols-1.sm\\:grid-cols-2.gap-4');
+        if (propertyListContainer) {
+          propertyListContainer.innerHTML = `
+            <div class="col-span-2 p-8 text-center bg-gray-50 rounded-lg">
+              <i class="ri-error-warning-line text-4xl text-gray-400 mb-4"></i>
+              <p class="text-gray-500">매물 정보를 불러오는데 실패했습니다.</p>
+            </div>
+          `;
+        }
+      });
+  } else {
+    console.error("API 객체가 정의되지 않았거나 loadPropertiesNearby 메서드가 없습니다.");
+    if (typeof showLoading === 'function') {
       showLoading(false);
-      
-      if (data.properties && data.properties.length > 0) {
-        // 모든 매물 데이터 저장
-        allProperties = data.properties;
-        lastProperties = data.properties;
-        
-        // 매물에 가상의 방향 속성 추가 (필터링 테스트용)
-        const directions = ['남향', '남동향', '남서향', '동향', '서향', '북향', '북동향', '북서향'];
-        allProperties = allProperties.map(property => {
-          // 매물 데이터에 임의의 방향 속성 추가
-          property.direction = directions[Math.floor(Math.random() * directions.length)];
-          return property;
-        });
-        
-        // 매물 마커 표시
-        clearMapMarkers();
-        data.properties.forEach(property => {
-          addMarkerToMap(
-            property.coordinates.lat,
-            property.coordinates.lng,
-            property.title,
-            property.formattedPrice
-          );
-        });
-        
-        // 매물 목록 업데이트
-        updatePropertyList(data.properties);
-      } else {
-        // 매물이 없는 경우
-        allProperties = [];
-        lastProperties = [];
-        updatePropertyList([]);
-      }
-    })
-    .catch(error => {
-      console.error("주변 매물 로드 실패:", error);
-      showLoading(false);
-      
-      // 오류 메시지 표시
-      const propertyListContainer = document.querySelector('.grid.grid-cols-1.sm\\:grid-cols-2.gap-4');
-      if (propertyListContainer) {
-        propertyListContainer.innerHTML = `
-          <div class="col-span-2 p-8 text-center bg-gray-50 rounded-lg">
-            <i class="ri-error-warning-line text-4xl text-gray-400 mb-4"></i>
-            <p class="text-gray-500">매물 정보를 불러오는데 실패했습니다.</p>
-          </div>
-        `;
-      }
-    });
+    }
+  }
 }
 
 // 카카오맵 로드 실패 시 오류 표시
@@ -469,7 +555,7 @@ function initExpandButton() {
 
         // 지도 크기 변경 시 리사이즈 이벤트 트리거 (카카오맵 렌더링 업데이트)
         setTimeout(() => {
-          if (map && !isExpanded) {
+          if (map && !isExpanded && window.kakao) {
             map.relayout();
           }
         }, 400);
@@ -498,6 +584,8 @@ function updateMapMarkers(properties) {
 
 // 특정 매물 강조 표시
 function highlightProperty(property) {
+  if (!window.kakao) return;
+  
   // 모든 마커를 순회하며 해당 매물에 해당하는 마커 찾기
   currentMarkers.forEach(marker => {
     const position = marker.getPosition();

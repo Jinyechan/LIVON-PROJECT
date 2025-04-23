@@ -1,12 +1,16 @@
 # app.py
-
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_from_directory
 import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime
 import json
+import os
+import math
 
 app = Flask(__name__)
+
+# 정적 파일 경로 설정 확인
+app.static_folder = 'static'
 
 # 공공데이터포털 API 키
 REALTRADING_API_KEY = 'S/1Gqx+pk+3dioHedGdoVI2fg3tdrEFyHYX6fhHWP0ZGmHdlJSidYxf22GwfHvuB6nW0ycYF4P8fIgNJR3EPEg=='
@@ -31,6 +35,11 @@ REGION_CODE_MAP = {
 def index():
     return render_template('index.html')
 
+# 특정 정적 파일 직접 제공 (디버깅용)
+@app.route('/static/<path:filename>')
+def custom_static(filename):
+    return send_from_directory(app.static_folder, filename)
+
 # 부동산 데이터 API
 @app.route('/api/property-data')
 def property_data():
@@ -45,42 +54,58 @@ def property_data():
 # 영역 내 부동산 조회 API
 @app.route('/api/properties-in-bounds')
 def properties_in_bounds():
-    sw_lat = float(request.args.get('swLat', 37.4))
-    sw_lng = float(request.args.get('swLng', 126.8))
-    ne_lat = float(request.args.get('neLat', 37.7))
-    ne_lng = float(request.args.get('neLng', 127.1))
-    
-    # 주어진 영역 내의 매물 가져오기
-    properties = get_sample_properties(sw_lat, sw_lng, ne_lat, ne_lng)
-    
-    return jsonify({
-        'success': True,
-        'properties': properties
-    })
+    try:
+        sw_lat = float(request.args.get('swLat', 37.4))
+        sw_lng = float(request.args.get('swLng', 126.8))
+        ne_lat = float(request.args.get('neLat', 37.7))
+        ne_lng = float(request.args.get('neLng', 127.1))
+        
+        # 주어진 영역 내의 매물 가져오기
+        properties = get_sample_properties(sw_lat, sw_lng, ne_lat, ne_lng)
+        
+        return jsonify({
+            'success': True,
+            'properties': properties
+        })
+    except Exception as e:
+        app.logger.error(f"영역 내 매물 조회 실패: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f"오류가 발생했습니다: {str(e)}",
+            'properties': []
+        }), 500
 
 # 주변 부동산 조회 API
 @app.route('/api/properties-nearby')
 def properties_nearby():
-    lat = float(request.args.get('lat', 37.5665))
-    lng = float(request.args.get('lng', 126.9780))
-    radius = float(request.args.get('radius', 2))
-    
-    # 반경을 위도/경도 범위로 변환
-    lat_delta = radius / 111  # 위도 1도는 약 111km
-    lng_delta = radius / (111 * (lat * 3.14159 / 180))  # 경도 1도는 위도에 따라 달라짐
-    
-    sw_lat = lat - lat_delta
-    sw_lng = lng - lng_delta
-    ne_lat = lat + lat_delta
-    ne_lng = lng + lng_delta
-    
-    # 주어진 반경 내의 매물 가져오기
-    properties = get_sample_properties(sw_lat, sw_lng, ne_lat, ne_lng, lat, lng, radius)
-    
-    return jsonify({
-        'success': True,
-        'properties': properties
-    })
+    try:
+        lat = float(request.args.get('lat', 37.5665))
+        lng = float(request.args.get('lng', 126.9780))
+        radius = float(request.args.get('radius', 2))
+        
+        # 반경을 위도/경도 범위로 변환
+        lat_delta = radius / 111  # 위도 1도는 약 111km
+        lng_delta = radius / (111 * math.cos(math.radians(lat)))  # 경도 1도는 위도에 따라 달라짐
+        
+        sw_lat = lat - lat_delta
+        sw_lng = lng - lng_delta
+        ne_lat = lat + lat_delta
+        ne_lng = lng + lng_delta
+        
+        # 주어진 반경 내의 매물 가져오기
+        properties = get_sample_properties(sw_lat, sw_lng, ne_lat, ne_lng, lat, lng, radius)
+        
+        return jsonify({
+            'success': True,
+            'properties': properties
+        })
+    except Exception as e:
+        app.logger.error(f"주변 매물 조회 실패: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f"오류가 발생했습니다: {str(e)}",
+            'properties': []
+        }), 500
 
 # 위치 검색 API
 @app.route('/api/search')
@@ -97,14 +122,15 @@ def search():
     # 실제 구현에서는 DB나 외부 API를 통해 검색
     # 여기서는 간단한 샘플 결과 반환
     results = [
-        {'id': 1, 'name': f'{query} 아파트', 'address': f'서울특별시 강남구 {query}동'},
-        {'id': 2, 'name': f'{query} 오피스텔', 'address': f'서울특별시 서초구 {query}로'},
-        {'id': 3, 'name': f'{query} 빌라', 'address': f'서울특별시 마포구 {query}길'}
+        {'id': 1, 'name': f'{query} 아파트', 'address': f'서울특별시 강남구 {query}동', 'coordinates': {'lat': 37.5665, 'lng': 126.9780}},
+        {'id': 2, 'name': f'{query} 오피스텔', 'address': f'서울특별시 서초구 {query}로', 'coordinates': {'lat': 37.5665, 'lng': 126.9780}},
+        {'id': 3, 'name': f'{query} 빌라', 'address': f'서울특별시 마포구 {query}길', 'coordinates': {'lat': 37.5665, 'lng': 126.9780}}
     ]
     
     return jsonify({
         'success': True,
-        'results': results
+        'results': results,
+        'coordinates': {'lat': 37.5665, 'lng': 126.9780}  # 검색 결과의 중심 좌표
     })
 
 # 지오코딩 API
@@ -235,11 +261,12 @@ def realtrading():
             'data': data
         })
     except Exception as e:
+        app.logger.error(f"실거래가 데이터 조회 실패: {str(e)}")
         return jsonify({
             'success': False,
             'message': str(e),
             'data': []
-        })
+        }), 500
 
 # 현재 날짜 기준으로 이전 달의 데이터를 조회하기 위한 함수
 def get_last_month():
@@ -359,9 +386,13 @@ def get_sample_properties(sw_lat=None, sw_lng=None, ne_lat=None, ne_lng=None, ce
         distance = random.random() * (radius or 2) * 0.8  # 80%까지의 반경
         angle = random.random() * 2 * 3.14159  # 0~360도 (라디안)
         
-        # 극좌표를 직교좌표로 변환
-        lat_offset = distance * (lat_delta := (distance * math.cos(angle) / 111))
-        lng_offset = distance * (lng_delta := (distance * math.sin(angle) / (111 * math.cos(center_lat * 3.14159 / 180))))
+        # 거리를 위도/경도 변화량으로 변환
+        lat_delta = distance / 111  # 1도 당 약 111km
+        lng_delta = distance / (111 * math.cos(math.radians(center_lat)))  # 위도에 따라 경도 1도의 거리가 달라짐
+        
+        # 극좌표를 위도/경도로 변환
+        lat_offset = lat_delta * math.cos(angle)
+        lng_offset = lng_delta * math.sin(angle)
         
         lat = center_lat + lat_offset
         lng = center_lng + lng_offset
@@ -404,9 +435,6 @@ def get_sample_properties(sw_lat=None, sw_lng=None, ne_lat=None, ne_lng=None, ce
         })
     
     return properties
-
-# 누락된 math 모듈 임포트 추가
-import math
 
 if __name__ == '__main__':
     app.run(debug=True)
