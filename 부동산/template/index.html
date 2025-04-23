@@ -259,10 +259,10 @@
     </header>
     
     <!-- 메인 섹션 -->
-    <div class="flex min-h-screen pt-[70px] relative">
+    <div class="flex min-h-screen pt-[0] relative">
         <div id="content-pane"
-            class="w-[50%] h-[calc(100vh-70px)] sticky top-[70px] transition-all duration-300 ease-in-out overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent bg-gray-50">
-            <div id="expand-button" class="fixed top-6 right-[50%] z-50">
+            class="w-[40%] h-[calc(100vh-70px)] sticky top-[70px] transition-all duration-300 ease-in-out overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent bg-gray-50">
+            <div id="expand-button" class="fixed top-6 right-[60%] z-50">
                 <button
                     class="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg hover:bg-primary/90 transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95"
                     title="전체화면 보기">
@@ -416,7 +416,7 @@
         </div>
         
         <div id="map-pane"
-            class="w-[50%] bg-gray-50 h-[calc(100vh-70px)] fixed right-0 top-[70px] transition-all duration-300 ease-in-out">
+            class="w-[60%] bg-gray-50 h-[calc(100vh-70px)] fixed right-0 top-[70px] transition-all duration-300 ease-in-out">
             <!-- 카카오맵 -->
             <div id="kakao-map" class="w-full h-full"></div>
             
@@ -427,11 +427,13 @@
             
             <!-- 지도 컨트롤 버튼 (우측 상단으로 이동) -->
             <div class="map-controls">
-                <button id="my-location-btn" class="map-control-btn" title="내 위치로 이동">
+                <button id="my-location-btn" class="map-control-btn expandable-control-btn" title="내 위치로 이동">
                     <i class="ri-map-pin-user-fill text-blue-500 text-lg"></i>
+                    <span class="btn-text">내 위치</span>
                 </button>
-                <button id="crime-area-btn" class="map-control-btn" title="범죄 지역 조회">
+                <button id="crime-area-btn" class="map-control-btn expandable-control-btn" title="범죄 지역 조회">
                     <i class="ri-alarm-warning-fill text-red-500 text-lg"></i>
+                    <span class="btn-text">주변 범죄 조회</span>
                 </button>
                 <button id="zoom-in-btn" class="map-control-btn" title="확대">
                     <i class="ri-zoom-in-line text-gray-700 text-lg"></i>
@@ -446,7 +448,7 @@
                 <div class="zoom-level-bar">
                     <div id="zoom-level-indicator" class="zoom-level-indicator"></div>
                 </div>
-                <div id="zoom-level-text" class="zoom-level-text">Lv.3</div>
+                <div id="zoom-level-text" class="zoom-level-text">x12</div>
             </div>
             
             <!-- 지도 정보 패널 -->

@@ -99,13 +99,13 @@ button:active {
   transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out, width 0.3s ease-in-out;
   z-index: 10; /* 지도 패널이 다른 요소보다 위에 있게 함 */
   display: block !important; /* 지도 패널이 항상 보이도록 함 */
-  width: 50% !important; /* 지도 패널의 너비를 정확히 50%로 설정 */
+  width: 60% !important; /* 지도 패널의 너비를 60%로 설정 */
   margin-left: 0; /* 여백 제거 */
 }
 
 #content-pane {
   transition: width 0.3s ease-in-out;
-  width: 50% !important; /* 콘텐츠 패널의 너비를 정확히 50%로 설정 */
+  width: 40% !important; /* 콘텐츠 패널의 너비를 40%로 설정 */
   padding-right: 0; /* 오른쪽 여백 제거 */
   background-color: #f9f9f9; /* 아주 밝은 회색 배경색 */
 }
@@ -594,6 +594,31 @@ input:checked + .slider:before {
   font-size: 12px;
   font-weight: bold;
   color: #4b5563;
+}
+
+/* 확장 버튼 호버 효과 */
+.expandable-control-btn {
+  width: 40px;
+  transition: width 0.3s ease-in-out;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.expandable-control-btn:hover {
+  width: 120px;
+}
+
+.expandable-control-btn .btn-text {
+  opacity: 0;
+  margin-left: 8px;
+  transition: opacity 0.3s ease-in-out;
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.expandable-control-btn:hover .btn-text {
+  opacity: 1;
 }
 
 /* 드래그 핸들 스타일 */

@@ -147,8 +147,10 @@ function updateZoomLevelIndicator(level) {
     // 인디케이터 위치 설정 (상단 0%, 하단 100%)
     indicator.style.top = `${percentage}%`;
     
-    // 텍스트 업데이트
-    text.textContent = `Lv.${level}`;
+    // 텍스트 업데이트 (배수 형식으로 변경)
+    // 레벨 1이 최대 확대 (x14), 레벨 14가 최소 확대 (x1)
+    const zoomMultiplier = Math.round((15 - level));
+    text.textContent = `x${zoomMultiplier}`;
   }
 }
 
